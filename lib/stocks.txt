@@ -1,0 +1,49 @@
+[
+  {
+    "key": 1,
+    "stocks": [
+      {
+        "id": "2330.TW",
+        "region": "TW"
+      }
+    ]
+  },
+  {
+    "key": 2,
+    "stocks": [
+      {
+        "id": "0050.TW",
+        "region": "TW"
+      }
+    ]
+  },
+  {
+    "key": 3,
+    "stocks": [
+      {
+        "id": "5880.TW",
+        "region": "TW"
+      },
+      {
+        "id": "0056.TW",
+        "region": "TW"
+      }
+    ]
+  },
+  {
+    "key": 4,
+    "stocks": []
+  },
+  {
+    "key": 5,
+    "stocks": []
+  },
+  {
+    "key": 6,
+    "stocks": []
+  },
+  {
+    "key": 7,
+    "stocks": []
+  }
+]

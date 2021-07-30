@@ -1,0 +1,216 @@
+[
+  {
+    "key": 1,
+    "stocks": [
+      {
+        "id": "2330.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2317.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2303.TW",
+        "region": "TW"
+      },
+      {
+        "id": "0050.TW",
+        "region": "TW"
+      }
+    ]
+  },
+  {
+    "key": 2,
+    "stocks": [
+      {
+        "id": "3209.TW",
+        "region": "TW"
+      },
+      {
+        "id": "5471.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2324.TW",
+        "region": "TW"
+      },
+      {
+        "id": "6201.TW",
+        "region": "TW"
+      },
+      {
+        "id": "6257.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2904.TW",
+        "region": "TW"
+      },
+      {
+        "id": "3028.TW",
+        "region": "TW"
+      },
+      {
+        "id": "3030.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2903.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2923.TW",
+        "region": "TW"
+      },
+      {
+        "id": "8926.TW",
+        "region": "TW"
+      },
+      {
+        "id": "4952.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2441.TW",
+        "region": "TW"
+      }
+    ]
+  },
+  {
+    "key": 3,
+    "stocks": [
+      {
+        "id": "5880.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2891.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2887.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2880.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2812.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2881.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2882.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2867.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2883.TW",
+        "region": "TW"
+      }
+    ]
+  },
+  {
+    "key": 4,
+    "stocks": [
+      {
+        "id": "6217.TWO",
+        "region": "TW"
+      },
+      {
+        "id": "2484.TW",
+        "region": "TW"
+      },
+      {
+        "id": "4919.TW",
+        "region": "TW"
+      },
+      {
+        "id": "3624.TWO",
+        "region": "TW"
+      },
+      {
+        "id": "6153.TW",
+        "region": "TW"
+      },
+      {
+        "id": "6509.TWO",
+        "region": "TW"
+      },
+      {
+        "id": "2609.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2615.TW",
+        "region": "TW"
+      },
+      {
+        "id": "2603.TW",
+        "region": "TW"
+      }
+    ]
+  },
+  {
+    "key": 5,
+    "stocks": [
+      {
+        "id": "00878.TW",
+        "region": "TW"
+      },
+      {
+        "id": "00888.TWO",
+        "region": "TW"
+      },
+      {
+        "id": "00881.TW",
+        "region": "TW"
+      },
+      {
+        "id": "00885.TW",
+        "region": "TW"
+      },
+      {
+        "id": "00891.TW",
+        "region": "TW"
+      },
+      {
+        "id": "00892.TW",
+        "region": "TW"
+      },
+      {
+        "id": "00712.TW",
+        "region": "TW"
+      },
+      {
+        "id": "00714.TW",
+        "region": "TW"
+      },
+      {
+        "id": "00882.TW",
+        "region": "TW"
+      }
+    ]
+  },
+  {
+    "key": 6,
+    "stocks": [
+      {
+        "id": "8431.TWO",
+        "region": "TW"
+      }
+    ]
+  },
+  {
+    "key": 7,
+    "stocks": []
+  }
+]
