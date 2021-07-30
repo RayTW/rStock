@@ -53,7 +53,7 @@ public class StockApplication extends JFrame {
   private void setupLayout() throws IOException {
     setTitle("rStock");
     setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    double scale = 0.3;
+    double scale = 0.4;
     Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
 
     setSize((int) (screen.getWidth() * scale), (int) (screen.getHeight() * scale));
@@ -89,7 +89,7 @@ public class StockApplication extends JFrame {
     StockTableArguments argments = new StockTableArguments();
 
     argments.setColumnsName(Arrays.asList("個股", "今價", "漲跌", "最高", "最低", "漲跌幅", "成交量"));
-    argments.setApiParameters("price,change,low,high,changepct,volume");
+    argments.setApiParameters("price,change,high,low,changepct,volume");
     argments.setApiResultProcess(
         (element) -> {
           String changepct = String.valueOf(element.get("changepct"));
@@ -100,8 +100,8 @@ public class StockApplication extends JFrame {
               element.getString("ticker"),
               String.valueOf(element.get("price")),
               String.valueOf(element.get("change")),
-              String.valueOf(element.get("low")),
               String.valueOf(element.get("high")),
+              String.valueOf(element.get("low")),
               changepct,
               String.valueOf(element.get("volume")));
         });
@@ -115,7 +115,7 @@ public class StockApplication extends JFrame {
           favoriteStocks.put(key, stocks);
           StockTable list = new StockTable(argments);
 
-          tabbedPand.add(key, list.getAll().toScrollPane());
+          tabbedPand.add(key, list.getScrollTable());
           stockPages.put(key, list);
         });
   }
@@ -197,7 +197,6 @@ public class StockApplication extends JFrame {
           StockApplication application = new StockApplication();
           try {
             application.initialize();
-
           } catch (IOException e) {
             e.printStackTrace();
           }

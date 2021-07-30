@@ -3,6 +3,7 @@ package io.github.raytw;
 import java.awt.Font;
 import java.io.IOException;
 import java.util.stream.StreamSupport;
+import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
@@ -33,8 +34,12 @@ public class StockTable {
     allTicker.setRowSorter(sorter);
   }
 
-  public DataTable getAll() {
+  public DataTable getTable() {
     return allTicker;
+  }
+
+  public JScrollPane getScrollTable() {
+    return allTicker.toScrollPane();
   }
 
   /**
