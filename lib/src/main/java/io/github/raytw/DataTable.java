@@ -9,6 +9,7 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
 
 /**
@@ -70,6 +71,10 @@ public class DataTable {
    */
   public void setFont(Font font) {
     table.setFont(font);
+  }
+
+  public TableColumnModel getColumnModel() {
+    return table.getColumnModel();
   }
 
   /**

@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.stream.StreamSupport;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 import okhttp3.Call;
@@ -40,6 +41,10 @@ public class StockTable {
 
   public JScrollPane getScrollTable() {
     return allTicker.toScrollPane();
+  }
+
+  public void setColumnDefaultRenderer(int column, DefaultTableCellRenderer renderer) {
+    allTicker.getColumnModel().getColumn(column).setCellRenderer(renderer);
   }
 
   /**

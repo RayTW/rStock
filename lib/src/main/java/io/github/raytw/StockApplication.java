@@ -1,6 +1,8 @@
 package io.github.raytw;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
@@ -18,9 +20,11 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
+import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
+import javax.swing.table.DefaultTableCellRenderer;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -88,21 +92,19 @@ public class StockApplication extends JFrame {
   private void loadSettings() throws JSONException, IOException {
     StockTableArguments argments = new StockTableArguments();
 
-    argments.setColumnsName(Arrays.asList("個股", "今價", "漲跌", "最高", "最低", "漲跌幅", "成交量"));
     argments.setApiParameters("price,change,high,low,changepct,volume");
+    argments.setColumnsName(Arrays.asList("個股", "今價", "漲跌", "最高", "最低", "成交量"));
     argments.setApiResultProcess(
         (element) -> {
-          String changepct = String.valueOf(element.get("changepct"));
-
-          changepct = (changepct.indexOf('-') == -1 ? "+" + changepct : changepct) + "%";
+          String change = String.valueOf(element.get("change"));
+          String changepct = change + " / " + String.valueOf(element.get("changepct") + "%");
 
           return Arrays.asList(
               element.getString("ticker"),
               String.valueOf(element.get("price")),
-              String.valueOf(element.get("change")),
+              changepct,
               String.valueOf(element.get("high")),
               String.valueOf(element.get("low")),
-              changepct,
               String.valueOf(element.get("volume")));
         });
 
@@ -114,6 +116,42 @@ public class StockApplication extends JFrame {
           String key = String.valueOf(page);
           favoriteStocks.put(key, stocks);
           StockTable list = new StockTable(argments);
+          Color green = new Color(20, 255, 126);
+
+          list.setColumnDefaultRenderer(
+              2,
+              new DefaultTableCellRenderer() {
+                private static final long serialVersionUID = 7138175900961908856L;
+
+                @Override
+                public Component getTableCellRendererComponent(
+                    JTable table,
+                    Object value,
+                    boolean isSelected,
+                    boolean hasFocus,
+                    int row,
+                    int column) {
+                  Component c =
+                      super.getTableCellRendererComponent(
+                          table, value, isSelected, hasFocus, row, column);
+
+                  if (column == 2) {
+                    String[] valueSplit = value.toString().split(" / ");
+                    String change = valueSplit[0];
+                    double doubleValue = Double.parseDouble(change);
+
+                    if (doubleValue == 0.0) {
+                      c.setForeground(Color.BLACK);
+                    } else if (doubleValue > 0.0) {
+                      c.setForeground(Color.RED);
+                    } else {
+                      c.setForeground(green);
+                    }
+                  }
+
+                  return c;
+                }
+              });
 
           tabbedPand.add(key, list.getScrollTable());
           stockPages.put(key, list);
