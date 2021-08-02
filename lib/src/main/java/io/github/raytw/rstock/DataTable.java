@@ -1,4 +1,4 @@
-package io.github.raytw;
+package io.github.raytw.rstock;
 
 import java.awt.Font;
 import java.util.ArrayList;
