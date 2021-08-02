@@ -1,8 +1,6 @@
 package io.github.raytw.rstock;
 
 import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
@@ -20,11 +18,9 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
-import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
-import javax.swing.table.DefaultTableCellRenderer;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -108,50 +104,14 @@ public class StockApplication extends JFrame {
               String.valueOf(element.get("volume")));
         });
 
-    JSONArray stockList = new JSONArray(new String(Files.readAllBytes(Paths.get("stocks.txt"))));
-
     loadStocks(
-        stockList,
+        new JSONArray(new String(Files.readAllBytes(Paths.get("stocks.txt")))),
         (page, stocks) -> {
           String key = String.valueOf(page);
           favoriteStocks.put(key, stocks);
           StockTable list = new StockTable(argments);
-          Color green = new Color(20, 255, 126);
 
-          list.setColumnDefaultRenderer(
-              2,
-              new DefaultTableCellRenderer() {
-                private static final long serialVersionUID = 7138175900961908856L;
-
-                @Override
-                public Component getTableCellRendererComponent(
-                    JTable table,
-                    Object value,
-                    boolean isSelected,
-                    boolean hasFocus,
-                    int row,
-                    int column) {
-                  Component c =
-                      super.getTableCellRendererComponent(
-                          table, value, isSelected, hasFocus, row, column);
-
-                  if (column == 2) {
-                    String[] valueSplit = value.toString().split(" / ");
-                    String change = valueSplit[0];
-                    double doubleValue = Double.parseDouble(change);
-
-                    if (doubleValue == 0.0) {
-                      c.setForeground(Color.BLACK);
-                    } else if (doubleValue > 0.0) {
-                      c.setForeground(Color.RED);
-                    } else {
-                      c.setForeground(green);
-                    }
-                  }
-
-                  return c;
-                }
-              });
+          list.setColumnDefaultRenderer(2, new StockTableCellRenderer());
 
           tabbedPand.add(key, list.getScrollTable());
           stockPages.put(key, list);
