@@ -11,7 +11,6 @@ import org.json.JSONObject;
  */
 public class StockTableArguments {
   private List<String> columnsName;
-  private String apiParameters;
   private Function<JSONObject, List<String>> apiResultProcess;
 
   public void setColumnsName(List<String> columnsName) {
@@ -20,14 +19,6 @@ public class StockTableArguments {
 
   public List<String> getColumnsName() {
     return columnsName;
-  }
-
-  public void setApiParameters(String apiParameters) {
-    this.apiParameters = apiParameters;
-  }
-
-  public String getApiParameters() {
-    return apiParameters;
   }
 
   public void setApiResultProcess(Function<JSONObject, List<String>> processListener) {

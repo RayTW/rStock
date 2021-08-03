@@ -1,9 +1,12 @@
 package io.github.raytw.rstock;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.HttpUrl;
@@ -59,10 +62,10 @@ public class Stock {
    * @param callback callback
    * @throws IOException IOException
    */
-  public void getStickerDetail(
+  public void getTickerDetail(
       List<String> tickerList, List<String> attributeList, Callback callback) throws IOException {
 
-    getStickerDetail(
+    getTickerDetail(
         tickerList.stream().reduce("", (a, b) -> a.isEmpty() ? b : a.concat(b).concat(",")),
         attributeList.stream().reduce("", (a, b) -> a.isEmpty() ? b : a.concat(b).concat(",")),
         callback);
@@ -77,7 +80,7 @@ public class Stock {
    * @param callback callback
    * @throws IOException IOException
    */
-  public void getStickerDetail(String tickerList, String attributeList, Callback callback)
+  public void getTickerDetail(String tickerList, String attributeList, Callback callback)
       throws IOException {
     Integer position = getPosition();
 
@@ -93,6 +96,43 @@ public class Stock {
     client
         .newCall(request)
         .enqueue(new ApiCallBack(callback, () -> apiPositionReserve.offer(position)));
+  }
+
+  /**
+   * Obtain ticker detail in batches and multiple threads concurrently.
+   *
+   * @param stocks stocks
+   * @param chunkSize chunkSize
+   * @param attributeList stock attribute, e.g : "price,low,high", See <a
+   *     href="https://support.google.com/docs/answer/3093281?hl=zh-Hant">GOOGLEFINANCE</a>
+   * @param callback callback
+   */
+  public void batchTickerDetail(
+      List<Ticker> stocks, int chunkSize, String attributeList, Callback callback) {
+    AtomicInteger counter = new AtomicInteger();
+
+    Collection<List<Ticker>> result =
+        stocks
+            .stream()
+            .collect(Collectors.groupingBy(it -> counter.getAndIncrement() / chunkSize))
+            .values();
+
+    result
+        .parallelStream()
+        .forEach(
+            tickers -> {
+              String tickerList =
+                  tickers
+                      .stream()
+                      .map(ticker -> ticker.getSymbol())
+                      .reduce("", (a, b) -> a.isEmpty() ? b : a.concat(",").concat(b));
+
+              try {
+                getTickerDetail(tickerList, attributeList, callback);
+              } catch (IOException e) {
+                e.printStackTrace();
+              }
+            });
   }
 
   private class ApiCallBack implements Callback {

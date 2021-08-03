@@ -56,6 +56,21 @@ public class DataTable {
   }
 
   /**
+   * Replaces the column identifiers in the model. If the number of newIdentifiers is greater than
+   * the current number of columns, new columns are added to the end of each row in the model. If
+   * the number of newIdentifiers is less than the current number of columns, all the extra columns
+   * at the end of a row are discarded.
+   *
+   * @param columnIdentifiers columnIdentifiers
+   */
+  public void setColumnsName(List<String> columnIdentifiers) {
+    Vector<String> names = new Vector<>();
+
+    columnIdentifiers.forEach(names::add);
+    tableModel.setColumnIdentifiers(names);
+  }
+
+  /**
    * Set row that the height.
    *
    * @param h row height
@@ -247,14 +262,32 @@ public class DataTable {
   }
 
   /**
+   * Returns the number of rows in this data table.
+   *
+   * @return the number of rows
+   */
+  public int getRowCount() {
+    return tableModel.getRowCount();
+  }
+
+  /**
+   * Returns the number of columns in this data table.
+   *
+   * @return the number of columns
+   */
+  public int getColumnCount() {
+    return tableModel.getColumnCount();
+  }
+
+  /**
    * Returns an attribute value for the cell at row and column.
    *
    * @param row row
    * @param column column
-   * @return Object
+   * @return String
    */
-  public Object getValutAt(int row, int column) {
-    return tableModel.getValueAt(row, column);
+  public String getValutAt(int row, int column) {
+    return (String) tableModel.getValueAt(row, column);
   }
 
   /**
@@ -280,7 +313,19 @@ public class DataTable {
    *
    * @return JScrollPane
    */
-  public JScrollPane toScrollPane() {
+  public JScrollPane createScrollPane() {
     return new JScrollPane(table);
+  }
+
+  /**
+   * Sets the object value for the cell at column and row. aValue is the new value. This method will
+   * generate a tableChanged notification.
+   *
+   * @param value value
+   * @param row row
+   * @param column column
+   */
+  public void setValueAt(Object value, int row, int column) {
+    tableModel.setValueAt(value, row, column);
   }
 }

@@ -1,16 +1,15 @@
 package io.github.raytw.rstock;
 
 import java.awt.Font;
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.StreamSupport;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.Response;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -27,12 +26,13 @@ public class StockTable {
   public StockTable(StockTableArguments arguments) {
     this.arguments = arguments;
     allTicker = new DataTable();
-    allTicker.addColumnsName(arguments.getColumnsName());
+    allTicker.setColumnsName(arguments.getColumnsName());
     allTicker.getTable().setAutoCreateRowSorter(true);
     allTicker.setCellEditableListener((row, col) -> false);
     allTicker.setFont(new Font("Serif", Font.BOLD, 14));
     TableRowSorter<TableModel> sorter = new TableRowSorter<>(allTicker.getTable().getModel());
     allTicker.setRowSorter(sorter);
+    allTicker.setShowHorizontalLines(true);
   }
 
   public DataTable getTable() {
@@ -40,11 +40,33 @@ public class StockTable {
   }
 
   public JScrollPane getScrollTable() {
-    return allTicker.toScrollPane();
+    return allTicker.createScrollPane();
   }
 
   public void setColumnDefaultRenderer(int column, DefaultTableCellRenderer renderer) {
     allTicker.getColumnModel().getColumn(column).setCellRenderer(renderer);
+  }
+
+  /**
+   * The column default display that ticker symbol.
+   *
+   * @param stocks stocks
+   */
+  public void setShowTickerSymbol(List<Ticker> stocks) {
+    SwingUtilities.invokeLater(
+        () -> {
+          allTicker.removeAll();
+          stocks
+              .stream()
+              .map(
+                  ticker -> {
+                    Object[] objs = new Object[arguments.getColumnsName().size()];
+                    Arrays.fill(objs, "");
+                    objs[0] = ticker.getSymbol();
+                    return objs;
+                  })
+              .forEach(allTicker::addRow);
+        });
   }
 
   /**
@@ -53,51 +75,26 @@ public class StockTable {
    * @param stocks stocks
    */
   public void reload(JSONArray stocks) {
-    String tickerList =
-        StreamSupport.stream(stocks.spliterator(), false)
-            .map(JSONObject.class::cast)
-            .map(
-                element -> {
-                  String symbol = element.getString("id");
-                  String region = element.getString("region");
+    SwingUtilities.invokeLater(
+        () -> {
+          for (int i = 0; i < allTicker.getRowCount(); i++) {
+            String tickerSymbol = allTicker.getValutAt(i, 0);
 
-                  if ("TW".equals(region)) {
-                    return "TPE:" + symbol.split("[.]")[0];
+            Optional<List<String>> oneRow =
+                StreamSupport.stream(stocks.spliterator(), false)
+                    .map(JSONObject.class::cast)
+                    .filter(element -> tickerSymbol.equals(element.getString("ticker")))
+                    .map(arguments.getApiResultProcess())
+                    .findFirst();
+
+            final int columnIndex = i;
+            oneRow.ifPresent(
+                dataVector -> {
+                  for (int j = 0; j < allTicker.getColumnCount(); j++) {
+                    allTicker.setValueAt(dataVector.get(j), columnIndex, j);
                   }
-
-                  return symbol;
-                })
-            .reduce("", (a, b) -> a.isEmpty() ? b : a.concat(",").concat(b));
-
-    try {
-      Stock.get()
-          .getStickerDetail(
-              tickerList,
-              arguments.getApiParameters(),
-              new Callback() {
-
-                @Override
-                public void onFailure(Call call, IOException exception) {
-                  // TODO Show error dialog.
-                  // https://github.com/dorkbox/Notify
-                  System.out.println("exception=" + exception);
-                }
-
-                @Override
-                public void onResponse(Call call, Response response) throws IOException {
-                  JSONArray result = new JSONArray(response.body().string());
-                  SwingUtilities.invokeLater(
-                      () -> {
-                        allTicker.removeAll();
-                        StreamSupport.stream(result.spliterator(), false)
-                            .map(JSONObject.class::cast)
-                            .map(arguments.getApiResultProcess())
-                            .forEach(allTicker::addRow);
-                      });
-                }
-              });
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+                });
+          }
+        });
   }
 }

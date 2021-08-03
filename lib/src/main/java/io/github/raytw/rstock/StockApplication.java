@@ -8,10 +8,13 @@ import java.awt.Toolkit;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -21,6 +24,9 @@ import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.Response;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -35,19 +41,23 @@ public class StockApplication extends JFrame {
   private JTextField searchComic;
   private JTabbedPane tabbedPand;
   private Map<String, StockTable> stockPages;
-  private Map<String, JSONArray> favoriteStocks;
+  private Map<String, List<Ticker>> favoriteTicker;
+  private Map<String, Integer> tickerSymbolMappingPage;
+  private List<Ticker> allTicker;
+  private String apiParameters;
+  private int tickerBatch = 5;
 
   /**
    * Initialize.
    *
    * @throws IOException IOException
    */
-  public void initialize() throws IOException {
-    stockPages = new HashMap<>();
-    favoriteStocks = new HashMap<>();
+  public StockApplication() throws IOException {
+    stockPages = new ConcurrentHashMap<>();
+    favoriteTicker = new ConcurrentHashMap<>();
+    tickerSymbolMappingPage = new ConcurrentHashMap<>();
+    allTicker = Collections.synchronizedList(new ArrayList<>());
     setupLayout();
-    loadSettings();
-    refreshStocksPage(1);
   }
 
   private void setupLayout() throws IOException {
@@ -70,13 +80,6 @@ public class StockApplication extends JFrame {
     JPanel centerPanel = new JPanel(new GridLayout(0, 1));
     tabbedPand = new JTabbedPane();
 
-    tabbedPand.addChangeListener(
-        event -> {
-          JTabbedPane pane = (JTabbedPane) event.getSource();
-
-          refreshStocksPage(pane.getSelectedIndex() + 1);
-        });
-
     centerPanel.add(tabbedPand);
 
     getContentPane().add(centerPanel, BorderLayout.CENTER);
@@ -85,10 +88,10 @@ public class StockApplication extends JFrame {
     setVisible(true);
   }
 
-  private void loadSettings() throws JSONException, IOException {
+  private void loadSettings(String stockPath) throws JSONException, IOException {
     StockTableArguments argments = new StockTableArguments();
 
-    argments.setApiParameters("price,change,high,low,changepct,volume");
+    apiParameters = "price,change,high,low,changepct,volume";
     argments.setColumnsName(Arrays.asList("個股", "今價", "漲跌", "最高", "最低", "成交量"));
     argments.setApiResultProcess(
         (element) -> {
@@ -104,29 +107,67 @@ public class StockApplication extends JFrame {
               String.valueOf(element.get("volume")));
         });
 
-    loadStocks(
-        new JSONArray(new String(Files.readAllBytes(Paths.get("stocks.txt")))),
-        (page, stocks) -> {
-          String key = String.valueOf(page);
-          favoriteStocks.put(key, stocks);
-          StockTable list = new StockTable(argments);
+    List<Ticker> tickers =
+        loadStocks(new JSONArray(new String(Files.readAllBytes(Paths.get(stockPath)))));
 
-          list.setColumnDefaultRenderer(2, new StockTableCellRenderer());
+    Map<String, List<Ticker>> tickersPages =
+        tickers
+            .stream()
+            .collect(
+                Collectors.groupingByConcurrent(
+                    ticker -> {
+                      tickerSymbolMappingPage.put(ticker.getSymbol(), ticker.getPage());
+                      return String.valueOf(ticker.getPage());
+                    }));
 
-          tabbedPand.add(key, list.getScrollTable());
-          stockPages.put(key, list);
-        });
+    tickersPages
+        .entrySet()
+        .forEach(
+            element -> {
+              String page = element.getKey();
+              List<Ticker> stocks = element.getValue();
+              StockTable list = new StockTable(argments);
+
+              list.setColumnDefaultRenderer(2, new StockTableCellRenderer());
+
+              // Let each page default display that ticker symbol.
+              list.setShowTickerSymbol(stocks);
+
+              tabbedPand.add(page, list.getScrollTable());
+              stockPages.put(page, list);
+            });
+    allTicker = tickers;
+    favoriteTicker = tickersPages;
   }
 
-  private void loadStocks(JSONArray stockList, BiConsumer<Integer, JSONArray> pageWithStocks) {
-    StreamSupport.stream(stockList.spliterator(), false)
+  private List<Ticker> loadStocks(JSONArray stockList) {
+    return StreamSupport.stream(stockList.spliterator(), false)
         .map(JSONObject.class::cast)
-        .forEach(
+        .map(
             json -> {
-              Integer key = json.getInt("key");
+              int key = json.getInt("key");
               JSONArray stocks = json.getJSONArray("stocks");
+              return StreamSupport.stream(stocks.spliterator(), false)
+                  .map(JSONObject.class::cast)
+                  .map(
+                      stock -> {
+                        String id = stock.getString("id");
+                        String region = stock.getString("region");
+                        String symbol = id;
 
-              pageWithStocks.accept(key, stocks);
+                        if ("TW".equals(region)) {
+                          symbol = "TPE:" + symbol.split("[.]")[0];
+                        }
+
+                        return new Ticker(key, id, symbol);
+                      })
+                  .collect(Collectors.toList());
+            })
+        .reduce(
+            new ArrayList<Ticker>(),
+            (a, b) -> {
+              a.addAll(b);
+              return a;
             });
   }
 
@@ -160,24 +201,89 @@ public class StockApplication extends JFrame {
     return dialog;
   }
 
+  /** Load each page stock. */
+  public void refreshStocksAllPage() {
+    List<Ticker> tickers = allTicker.stream().distinct().collect(Collectors.toList());
+    List<JSONObject> allResultTickers = new ArrayList<>();
+
+    Stock.get()
+        .batchTickerDetail(
+            tickers,
+            tickerBatch,
+            apiParameters,
+            new Callback() {
+
+              @Override
+              public void onFailure(Call call, IOException exception) {
+                // TODO Show error dialog.
+                // https://github.com/dorkbox/Notify
+                System.out.println("exception=" + exception);
+              }
+
+              @Override
+              public void onResponse(Call call, Response response) throws IOException {
+                StreamSupport.stream(new JSONArray(response.body().string()).spliterator(), false)
+                    .map(JSONObject.class::cast)
+                    .map(json -> json.put("page", tickerSymbolMappingPage.get(json.get("ticker"))))
+                    .forEach(allResultTickers::add);
+
+                // Group by page.
+                allResultTickers
+                    .stream()
+                    .collect(Collectors.groupingBy(json -> String.valueOf(json.getInt("page"))))
+                    .entrySet()
+                    .stream()
+                    .forEach(
+                        element -> {
+                          String page = element.getKey();
+                          List<JSONObject> pageTickers = element.getValue();
+                          JSONArray tickersArray = new JSONArray();
+                          StockTable stockList = stockPages.get(page);
+
+                          pageTickers.stream().forEach(tickersArray::put);
+
+                          stockList.reload(tickersArray);
+                        });
+              }
+            });
+  }
+
   /**
    * Refresh the page of current.
    *
    * @param page page
    */
-  public void refreshStocksPage(int page) {
+  public void refreshStocksSinglePage(int page) {
     if (stockPages.size() == 0) {
       return;
     }
     String key = String.valueOf(page);
-    JSONArray stocks = favoriteStocks.get(key);
+    List<Ticker> stocks = favoriteTicker.get(key);
 
-    if (stocks.length() == 0) {
+    if (stocks.size() == 0) {
       return;
     }
     StockTable stockList = stockPages.get(key);
 
-    stockList.reload(stocks);
+    Stock.get()
+        .batchTickerDetail(
+            stocks,
+            tickerBatch,
+            apiParameters,
+            new Callback() {
+
+              @Override
+              public void onFailure(Call call, IOException exception) {
+                // TODO Show error dialog.
+                // https://github.com/dorkbox/Notify
+                System.out.println("exception=" + exception);
+              }
+
+              @Override
+              public void onResponse(Call call, Response response) throws IOException {
+                stockList.reload(new JSONArray(response.body().string()));
+              }
+            });
   }
 
   /**
@@ -189,17 +295,13 @@ public class StockApplication extends JFrame {
     JDialog loading = showLoadingDialog();
 
     loading.setVisible(true);
-
-    SwingUtilities.invokeLater(
-        () -> {
-          StockApplication application = new StockApplication();
-          try {
-            application.initialize();
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
-
-          loading.dispose();
-        });
+    try {
+      StockApplication application = new StockApplication();
+      application.loadSettings("stocks.txt");
+      SwingUtilities.invokeLater(() -> loading.dispose());
+      application.refreshStocksAllPage();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 }

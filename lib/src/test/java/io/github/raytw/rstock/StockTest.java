@@ -12,7 +12,7 @@ class StockTest {
   @Test
   void testStockList() throws IOException {
     Stock.get()
-        .getStickerDetail(
+        .getTickerDetail(
             Arrays.asList("TPE:2880", "TPE:2881"),
             Arrays.asList("price", "low"),
             new Callback() {
