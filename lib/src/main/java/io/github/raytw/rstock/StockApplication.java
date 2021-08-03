@@ -48,7 +48,7 @@ public class StockApplication extends JFrame {
   private List<Ticker> allTicker;
   private Timer timer;
   private String apiParameters;
-  private int tickerBatch = 5;
+  private int tickerBatch = 3;
   private int pageReloadSeconds = 5;
 
   /**
@@ -97,19 +97,18 @@ public class StockApplication extends JFrame {
     StockTableArguments argments = new StockTableArguments();
 
     apiParameters = "price,change,high,low,changepct,volume";
-    argments.setColumnsName(Arrays.asList("個股", "今價", "漲跌", "最高", "最低", "成交量"));
+    argments.setColumnsName(Arrays.asList("個股", "今價", "漲跌", "最高", "最低"));
     argments.setApiResultProcess(
         (element) -> {
           String change = String.valueOf(element.get("change"));
-          String changepct = change + " / " + String.valueOf(element.get("changepct") + "%");
+          String changepct = String.valueOf(element.get("changepct"));
+          String price = String.valueOf(element.get("price"));
+          String high = String.valueOf(element.get("high"));
+          String low = String.valueOf(element.get("low"));
 
-          return Arrays.asList(
-              element.getString("ticker"),
-              String.valueOf(element.get("price")),
-              changepct,
-              String.valueOf(element.get("high")),
-              String.valueOf(element.get("low")),
-              String.valueOf(element.get("volume")));
+          String changepctPercent = change + " / " + changepct + "%";
+
+          return Arrays.asList(element.getString("ticker"), price, changepctPercent, high, low);
         });
 
     List<Ticker> tickers =
