@@ -90,8 +90,13 @@ public class StockTable {
             final int columnIndex = i;
             oneRow.ifPresent(
                 dataVector -> {
+                  String newValue = null;
                   for (int j = 0; j < allTicker.getColumnCount(); j++) {
-                    allTicker.setValueAt(dataVector.get(j), columnIndex, j);
+                    newValue = dataVector.get(j);
+                    if (newValue.contains("#ERROR!")) {
+                      continue;
+                    }
+                    allTicker.setValueAt(newValue, columnIndex, j);
                   }
                 });
           }
