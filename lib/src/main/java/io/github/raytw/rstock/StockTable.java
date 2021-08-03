@@ -4,6 +4,7 @@ import java.awt.Font;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.StreamSupport;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
@@ -67,6 +68,15 @@ public class StockTable {
                   })
               .forEach(allTicker::addRow);
         });
+  }
+
+  /**
+   * Sets listener that returns the ticker symbol when double click single row.
+   *
+   * @param listener listener
+   */
+  public void setDoubleClickTickerSymbolListener(Consumer<String> listener) {
+    allTicker.setDoubleClickRowListener(listener, 0);
   }
 
   /**

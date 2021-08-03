@@ -1,10 +1,14 @@
 package io.github.raytw.rstock;
 
 import java.awt.Font;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Vector;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
@@ -49,6 +53,55 @@ public class DataTable {
    */
   public void setCellEditableListener(BiFunction<Integer, Integer, Boolean> listener) {
     isCellEditable = listener;
+  }
+
+  /**
+   * Sets listener that double click.
+   *
+   * @param listener listener
+   */
+  private void registerDoubleClickListener(DoubleClickListener<JTable> listener) {
+    Optional<DoubleClickListener<JTable>> clickListener = Optional.ofNullable(listener);
+
+    table.addMouseListener(
+        new MouseAdapter() {
+          public void mouseClicked(MouseEvent me) {
+            if (me.getClickCount() == 2) { // to detect doble click events
+              JTable target = (JTable) me.getSource();
+              int row = target.getSelectedRow(); // select a row
+              int col = target.getSelectedColumn(); // select a column
+
+              clickListener.ifPresent(li -> li.onDoubleClick(row, col, target));
+            }
+          }
+        });
+  }
+
+  /**
+   * Sets listener that double click.
+   *
+   * @param listener listener
+   */
+  public void setDoubleClickListener(DoubleClickListener<Object> listener) {
+    registerDoubleClickListener(
+        (row, col, table) -> {
+          Optional.ofNullable(listener)
+              .ifPresent(li -> li.onDoubleClick(row, col, table.getValueAt(row, col)));
+        });
+  }
+
+  /**
+   * Sets listener that double click for single row.
+   *
+   * @param listener listener
+   * @param column column position
+   */
+  public void setDoubleClickRowListener(Consumer<String> listener, int column) {
+    registerDoubleClickListener(
+        (row, col, table) -> {
+          Optional.ofNullable(listener)
+              .ifPresent(li -> li.accept(String.valueOf(table.getValueAt(row, column))));
+        });
   }
 
   public void setRowSorter(TableRowSorter<javax.swing.table.TableModel> sorter) {
@@ -327,5 +380,10 @@ public class DataTable {
    */
   public void setValueAt(Object value, int row, int column) {
     tableModel.setValueAt(value, row, column);
+  }
+
+  /** Double Click Listener. */
+  public static interface DoubleClickListener<T> {
+    public void onDoubleClick(int row, int col, T data);
   }
 }

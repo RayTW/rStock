@@ -128,14 +128,20 @@ public class StockApplication extends JFrame {
         .entrySet()
         .forEach(
             element -> {
-              String page = element.getKey();
               List<Ticker> stocks = element.getValue();
               StockTable list = new StockTable(argments);
 
               list.setColumnDefaultRenderer(2, new StockTableCellRenderer());
-
               // Let each page default display that ticker symbol.
               list.setShowTickerSymbol(stocks);
+              list.setDoubleClickTickerSymbolListener(
+                  (tickerSymbol) -> {
+                    // TODO show a component of the text area that strategy of choice stock for the
+                    // user to write java script.
+                    System.out.println("tickerSymbol=" + tickerSymbol);
+                  });
+
+              String page = element.getKey();
 
               tabbedPand.add(page, list.getScrollTable());
               tabbedPand.setSelectedIndex(0);
@@ -209,7 +215,6 @@ public class StockApplication extends JFrame {
   /** Load each page stock. */
   public void refreshStocksAllPage() {
     List<Ticker> tickers = allTicker.stream().distinct().collect(Collectors.toList());
-    List<JSONObject> allResultTickers = Collections.synchronizedList(new ArrayList<>());
 
     Stock.get()
         .batchTickerDetail(
@@ -220,19 +225,20 @@ public class StockApplication extends JFrame {
 
               @Override
               public void onFailure(Call call, IOException exception) {
-                // TODO Show error dialog.
+                // TODO show error dialog.
                 // https://github.com/dorkbox/Notify
                 System.out.println("exception=" + exception);
               }
 
               @Override
               public void onResponse(Call call, Response response) throws IOException {
+                List<JSONObject> allResultTickers = Collections.synchronizedList(new ArrayList<>());
                 StreamSupport.stream(new JSONArray(response.body().string()).spliterator(), false)
                     .map(JSONObject.class::cast)
                     .map(json -> json.put("page", tickerSymbolMappingPage.get(json.get("ticker"))))
                     .forEach(allResultTickers::add);
 
-                // Group by page.
+                // group by page.
                 allResultTickers
                     .stream()
                     .collect(Collectors.groupingBy(json -> String.valueOf(json.getInt("page"))))
@@ -280,7 +286,7 @@ public class StockApplication extends JFrame {
 
               @Override
               public void onFailure(Call call, IOException exception) {
-                // TODO Show error dialog.
+                // TODO show error dialog.
                 // https://github.com/dorkbox/Notify
                 System.out.println("exception=" + exception);
               }
