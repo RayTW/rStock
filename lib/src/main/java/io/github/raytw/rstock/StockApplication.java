@@ -13,6 +13,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -44,8 +46,10 @@ public class StockApplication extends JFrame {
   private Map<String, List<Ticker>> favoriteTicker;
   private Map<String, Integer> tickerSymbolMappingPage;
   private List<Ticker> allTicker;
+  private Timer timer;
   private String apiParameters;
   private int tickerBatch = 5;
+  private int pageReloadSeconds = 5;
 
   /**
    * Initialize.
@@ -57,6 +61,7 @@ public class StockApplication extends JFrame {
     favoriteTicker = new ConcurrentHashMap<>();
     tickerSymbolMappingPage = new ConcurrentHashMap<>();
     allTicker = Collections.synchronizedList(new ArrayList<>());
+    timer = new Timer();
     setupLayout();
   }
 
@@ -134,6 +139,7 @@ public class StockApplication extends JFrame {
               list.setShowTickerSymbol(stocks);
 
               tabbedPand.add(page, list.getScrollTable());
+              tabbedPand.setSelectedIndex(0);
               stockPages.put(page, list);
             });
     allTicker = tickers;
@@ -204,7 +210,7 @@ public class StockApplication extends JFrame {
   /** Load each page stock. */
   public void refreshStocksAllPage() {
     List<Ticker> tickers = allTicker.stream().distinct().collect(Collectors.toList());
-    List<JSONObject> allResultTickers = new ArrayList<>();
+    List<JSONObject> allResultTickers = Collections.synchronizedList(new ArrayList<>());
 
     Stock.get()
         .batchTickerDetail(
@@ -245,7 +251,8 @@ public class StockApplication extends JFrame {
                           stockList.reload(tickersArray);
                         });
               }
-            });
+            },
+            this::triggerTimer); // complete load all ticker detail.
   }
 
   /**
@@ -283,7 +290,24 @@ public class StockApplication extends JFrame {
               public void onResponse(Call call, Response response) throws IOException {
                 stockList.reload(new JSONArray(response.body().string()));
               }
-            });
+            },
+            this::triggerTimer);
+  }
+
+  /** Refresh single page when each five seconds. */
+  private void triggerTimer() {
+    timer.schedule(
+        new TimerTask() {
+
+          @Override
+          public void run() {
+            if (tabbedPand.getSelectedIndex() == -1) {
+              return;
+            }
+            refreshStocksSinglePage(tabbedPand.getSelectedIndex() + 1);
+          }
+        },
+        pageReloadSeconds * 1000);
   }
 
   /**

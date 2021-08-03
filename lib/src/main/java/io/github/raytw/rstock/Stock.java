@@ -3,6 +3,8 @@ package io.github.raytw.rstock;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -109,6 +111,21 @@ public class Stock {
    */
   public void batchTickerDetail(
       List<Ticker> stocks, int chunkSize, String attributeList, Callback callback) {
+    batchTickerDetail(stocks, chunkSize, attributeList, callback, null);
+  }
+
+  /**
+   * Obtain ticker detail in batches and multiple threads concurrently.
+   *
+   * @param stocks stocks
+   * @param chunkSize chunkSize
+   * @param attributeList stock attribute, e.g : "price,low,high", See <a
+   *     href="https://support.google.com/docs/answer/3093281?hl=zh-Hant">GOOGLEFINANCE</a>
+   * @param callback callback
+   * @param done done
+   */
+  public void batchTickerDetail(
+      List<Ticker> stocks, int chunkSize, String attributeList, Callback callback, Runnable done) {
     AtomicInteger counter = new AtomicInteger();
 
     Collection<List<Ticker>> result =
@@ -116,6 +133,23 @@ public class Stock {
             .stream()
             .collect(Collectors.groupingBy(it -> counter.getAndIncrement() / chunkSize))
             .values();
+
+    Optional<CountDownLatch> letchRef =
+        Optional.ofNullable(done == null ? null : new CountDownLatch(result.size()));
+
+    letchRef.ifPresent(
+        o -> {
+          new Thread(
+                  () -> {
+                    try {
+                      o.await();
+                      done.run();
+                    } catch (InterruptedException e) {
+                      e.printStackTrace();
+                    }
+                  })
+              .start();
+        });
 
     result
         .parallelStream()
@@ -128,7 +162,10 @@ public class Stock {
                       .reduce("", (a, b) -> a.isEmpty() ? b : a.concat(",").concat(b));
 
               try {
-                getTickerDetail(tickerList, attributeList, callback);
+                getTickerDetail(
+                    tickerList,
+                    attributeList,
+                    new ApiCallBack(callback, () -> letchRef.ifPresent(ref -> ref.countDown())) {});
               } catch (IOException e) {
                 e.printStackTrace();
               }
@@ -146,14 +183,14 @@ public class Stock {
 
     @Override
     public void onFailure(Call arg0, IOException arg1) {
-      callback.onFailure(arg0, arg1);
       doneListener.run();
+      callback.onFailure(arg0, arg1);
     }
 
     @Override
     public void onResponse(Call arg0, Response arg1) throws IOException {
-      callback.onResponse(arg0, arg1);
       doneListener.run();
+      callback.onResponse(arg0, arg1);
     }
   }
 }
