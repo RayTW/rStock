@@ -45,6 +45,7 @@ public class StockApplication extends JFrame {
   private JTabbedPane tabbedPand;
   private Map<String, StockTable> stockPages;
   private Map<String, Ticker> allTicker;
+  private JavaScriptEditor jsEditor;
   private Timer timer;
   private String apiParameters;
   private int tickerBatch = 3;
@@ -58,6 +59,7 @@ public class StockApplication extends JFrame {
   public StockApplication() throws IOException {
     stockPages = new ConcurrentHashMap<>();
     allTicker = new ConcurrentHashMap<>();
+    jsEditor = new JavaScriptEditor();
     timer = new Timer();
     setupLayout();
   }
@@ -128,11 +130,7 @@ public class StockApplication extends JFrame {
               // Let each page default display that ticker symbol.
               list.setShowTickerSymbol(stocks);
               list.setDoubleClickTickerSymbolListener(
-                  (tickerSymbol) -> {
-                    // TODO show a component of the text area that strategy of choice stock for the
-                    // user to write java script.
-                    System.out.println("tickerSymbol=" + tickerSymbol);
-                  });
+                  (tickerSymbol) -> jsEditor.verify(allTicker.get(tickerSymbol)));
 
               String page = element.getKey();
 
