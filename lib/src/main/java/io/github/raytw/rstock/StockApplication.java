@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -43,9 +44,7 @@ public class StockApplication extends JFrame {
   private JTextField searchComic;
   private JTabbedPane tabbedPand;
   private Map<String, StockTable> stockPages;
-  private Map<String, List<Ticker>> favoriteTicker;
-  private Map<String, Integer> tickerSymbolMappingPage;
-  private List<Ticker> allTicker;
+  private Map<String, Ticker> allTicker;
   private Timer timer;
   private String apiParameters;
   private int tickerBatch = 3;
@@ -58,9 +57,7 @@ public class StockApplication extends JFrame {
    */
   public StockApplication() throws IOException {
     stockPages = new ConcurrentHashMap<>();
-    favoriteTicker = new ConcurrentHashMap<>();
-    tickerSymbolMappingPage = new ConcurrentHashMap<>();
-    allTicker = Collections.synchronizedList(new ArrayList<>());
+    allTicker = new ConcurrentHashMap<>();
     timer = new Timer();
     setupLayout();
   }
@@ -96,35 +93,31 @@ public class StockApplication extends JFrame {
   private void loadSettings(String stockPath) throws JSONException, IOException {
     StockTableArguments argments = new StockTableArguments();
 
-    apiParameters = "price,change,high,low,changepct,volume";
+    apiParameters = "price,change,high,low,changepct";
     argments.setColumnsName(Arrays.asList("個股", "今價", "漲跌", "最高", "最低"));
     argments.setApiResultProcess(
         (element) -> {
-          String change = String.valueOf(element.get("change"));
-          String changepct = String.valueOf(element.get("changepct"));
-          String price = String.valueOf(element.get("price"));
-          String high = String.valueOf(element.get("high"));
-          String low = String.valueOf(element.get("low"));
+          String changepctPercent = element.getChange() + " / " + element.getChangepct() + "%";
 
-          String changepctPercent = change + " / " + changepct + "%";
-
-          return Arrays.asList(element.getString("ticker"), price, changepctPercent, high, low);
+          return Arrays.asList(
+              element.getSymbol(),
+              element.getPrice(),
+              changepctPercent,
+              element.getHigh(),
+              element.getLow());
         });
 
-    List<Ticker> tickers =
+    List<Ticker> tickersSymbol =
         loadStocks(new JSONArray(new String(Files.readAllBytes(Paths.get(stockPath)))));
 
-    Map<String, List<Ticker>> tickersPages =
-        tickers
-            .stream()
-            .collect(
-                Collectors.groupingByConcurrent(
-                    ticker -> {
-                      tickerSymbolMappingPage.put(ticker.getSymbol(), ticker.getPage());
-                      return String.valueOf(ticker.getPage());
-                    }));
+    tickersSymbol.stream().forEach(ticker -> allTicker.put(ticker.getSymbol(), ticker));
 
-    tickersPages
+    Map<String, List<Ticker>> eachPageTickers =
+        tickersSymbol
+            .stream()
+            .collect(Collectors.groupingByConcurrent(ticker -> String.valueOf(ticker.getPage())));
+
+    eachPageTickers
         .entrySet()
         .forEach(
             element -> {
@@ -143,12 +136,10 @@ public class StockApplication extends JFrame {
 
               String page = element.getKey();
 
+              stockPages.put(page, list);
               tabbedPand.add(page, list.getScrollTable());
               tabbedPand.setSelectedIndex(0);
-              stockPages.put(page, list);
             });
-    allTicker = tickers;
-    favoriteTicker = tickersPages;
   }
 
   private List<Ticker> loadStocks(JSONArray stockList) {
@@ -214,11 +205,9 @@ public class StockApplication extends JFrame {
 
   /** Load each page stock. */
   public void refreshStocksAllPage() {
-    List<Ticker> tickers = allTicker.stream().distinct().collect(Collectors.toList());
-
     Stock.get()
         .batchTickerDetail(
-            tickers,
+            allTicker.keySet(),
             tickerBatch,
             apiParameters,
             new Callback() {
@@ -232,28 +221,20 @@ public class StockApplication extends JFrame {
 
               @Override
               public void onResponse(Call call, Response response) throws IOException {
-                List<JSONObject> allResultTickers = Collections.synchronizedList(new ArrayList<>());
-                StreamSupport.stream(new JSONArray(response.body().string()).spliterator(), false)
-                    .map(JSONObject.class::cast)
-                    .map(json -> json.put("page", tickerSymbolMappingPage.get(json.get("ticker"))))
-                    .forEach(allResultTickers::add);
+                List<Ticker> tickersLatest = convertJsonToTicker(response.body().string());
 
                 // group by page.
-                allResultTickers
+                tickersLatest
                     .stream()
-                    .collect(Collectors.groupingBy(json -> String.valueOf(json.getInt("page"))))
+                    .collect(Collectors.groupingBy(ticker -> ticker.getPage()))
                     .entrySet()
                     .stream()
                     .forEach(
                         element -> {
-                          String page = element.getKey();
-                          List<JSONObject> pageTickers = element.getValue();
-                          JSONArray tickersArray = new JSONArray();
-                          StockTable stockList = stockPages.get(page);
+                          int page = element.getKey();
+                          StockTable stockList = stockPages.get(String.valueOf(page));
 
-                          pageTickers.stream().forEach(tickersArray::put);
-
-                          stockList.reload(tickersArray);
+                          stockList.reload(element.getValue());
                         });
               }
             },
@@ -270,16 +251,14 @@ public class StockApplication extends JFrame {
       return;
     }
     String key = String.valueOf(page);
-    List<Ticker> stocks = favoriteTicker.get(key);
+    List<String> symbols = stockPages.get(key).getColumnValues(0);
 
-    if (stocks.size() == 0) {
+    if (symbols.size() == 0) {
       return;
     }
-    StockTable stockList = stockPages.get(key);
-
     Stock.get()
         .batchTickerDetail(
-            stocks,
+            new HashSet<>(symbols),
             tickerBatch,
             apiParameters,
             new Callback() {
@@ -293,10 +272,22 @@ public class StockApplication extends JFrame {
 
               @Override
               public void onResponse(Call call, Response response) throws IOException {
-                stockList.reload(new JSONArray(response.body().string()));
+                List<Ticker> tickersLatest = convertJsonToTicker(response.body().string());
+                StockTable stockList = stockPages.get(key);
+                stockList.reload(tickersLatest);
               }
             },
             this::triggerTimer);
+  }
+
+  private List<Ticker> convertJsonToTicker(String responseString) {
+    JSONArray responseBody = new JSONArray(responseString);
+
+    return Collections.synchronizedList(
+        StreamSupport.stream(responseBody.spliterator(), false)
+            .map(JSONObject.class::cast)
+            .map(json -> allTicker.get(json.getString("ticker")).setValues(json))
+            .collect(Collectors.toList()));
   }
 
   /** Refresh single page when each five seconds. */

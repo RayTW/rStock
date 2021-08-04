@@ -2,7 +2,6 @@ package io.github.raytw.rstock;
 
 import java.util.List;
 import java.util.function.Function;
-import org.json.JSONObject;
 
 /**
  * The arguments of StockTable.
@@ -11,7 +10,7 @@ import org.json.JSONObject;
  */
 public class StockTableArguments {
   private List<String> columnsName;
-  private Function<JSONObject, List<String>> apiResultProcess;
+  private Function<Ticker, List<String>> apiResultProcess;
 
   public void setColumnsName(List<String> columnsName) {
     this.columnsName = columnsName;
@@ -21,11 +20,11 @@ public class StockTableArguments {
     return columnsName;
   }
 
-  public void setApiResultProcess(Function<JSONObject, List<String>> processListener) {
+  public void setApiResultProcess(Function<Ticker, List<String>> processListener) {
     this.apiResultProcess = processListener;
   }
 
-  public Function<JSONObject, List<String>> getApiResultProcess() {
+  public Function<Ticker, List<String>> getApiResultProcess() {
     return apiResultProcess;
   }
 }

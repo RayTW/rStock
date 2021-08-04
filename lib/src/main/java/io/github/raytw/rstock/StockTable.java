@@ -1,18 +1,16 @@
 package io.github.raytw.rstock;
 
 import java.awt.Font;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.stream.StreamSupport;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 /**
  * Ticker list.
@@ -42,6 +40,22 @@ public class StockTable {
 
   public JScrollPane getScrollTable() {
     return allTicker.createScrollPane();
+  }
+
+  /**
+   * Returns the values of single column.
+   *
+   * @param column column
+   * @return row value
+   */
+  public List<String> getColumnValues(int column) {
+    List<String> ret = new ArrayList<String>();
+
+    for (int i = 0; i < allTicker.getRowCount(); i++) {
+      ret.add(allTicker.getValutAt(i, column));
+    }
+
+    return ret;
   }
 
   public void setColumnDefaultRenderer(int column, DefaultTableCellRenderer renderer) {
@@ -84,16 +98,16 @@ public class StockTable {
    *
    * @param stocks stocks
    */
-  public void reload(JSONArray stocks) {
+  public void reload(List<Ticker> stocks) {
     SwingUtilities.invokeLater(
         () -> {
           for (int i = 0; i < allTicker.getRowCount(); i++) {
             String tickerSymbol = allTicker.getValutAt(i, 0);
 
             Optional<List<String>> oneRow =
-                StreamSupport.stream(stocks.spliterator(), false)
-                    .map(JSONObject.class::cast)
-                    .filter(element -> tickerSymbol.equals(element.getString("ticker")))
+                stocks
+                    .stream()
+                    .filter(element -> tickerSymbol.equals(element.getSymbol()))
                     .map(arguments.getApiResultProcess())
                     .findFirst();
 

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TimeUnit;
@@ -103,21 +104,21 @@ public class Stock {
   /**
    * Obtain ticker detail in batches and multiple threads concurrently.
    *
-   * @param stocks stocks
+   * @param tickersSymbol tickersSymbol
    * @param chunkSize chunkSize
    * @param attributeList stock attribute, e.g : "price,low,high", See <a
    *     href="https://support.google.com/docs/answer/3093281?hl=zh-Hant">GOOGLEFINANCE</a>
    * @param callback callback
    */
   public void batchTickerDetail(
-      List<Ticker> stocks, int chunkSize, String attributeList, Callback callback) {
-    batchTickerDetail(stocks, chunkSize, attributeList, callback, null);
+      Set<String> tickersSymbol, int chunkSize, String attributeList, Callback callback) {
+    batchTickerDetail(tickersSymbol, chunkSize, attributeList, callback, null);
   }
 
   /**
    * Obtain ticker detail in batches and multiple threads concurrently.
    *
-   * @param stocks stocks
+   * @param tickersSymbol tickersSymbol
    * @param chunkSize chunkSize
    * @param attributeList stock attribute, e.g : "price,low,high", See <a
    *     href="https://support.google.com/docs/answer/3093281?hl=zh-Hant">GOOGLEFINANCE</a>
@@ -125,11 +126,15 @@ public class Stock {
    * @param done done
    */
   public void batchTickerDetail(
-      List<Ticker> stocks, int chunkSize, String attributeList, Callback callback, Runnable done) {
+      Set<String> tickersSymbol,
+      int chunkSize,
+      String attributeList,
+      Callback callback,
+      Runnable done) {
     AtomicInteger counter = new AtomicInteger();
 
-    Collection<List<Ticker>> result =
-        stocks
+    Collection<List<String>> result =
+        tickersSymbol
             .stream()
             .collect(Collectors.groupingBy(it -> counter.getAndIncrement() / chunkSize))
             .values();
@@ -156,10 +161,7 @@ public class Stock {
         .forEach(
             tickers -> {
               String tickerList =
-                  tickers
-                      .stream()
-                      .map(ticker -> ticker.getSymbol())
-                      .reduce("", (a, b) -> a.isEmpty() ? b : a.concat(",").concat(b));
+                  tickers.stream().reduce("", (a, b) -> a.isEmpty() ? b : a.concat(",").concat(b));
 
               try {
                 getTickerDetail(

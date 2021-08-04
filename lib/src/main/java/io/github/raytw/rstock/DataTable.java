@@ -65,6 +65,7 @@ public class DataTable {
 
     table.addMouseListener(
         new MouseAdapter() {
+          @Override
           public void mouseClicked(MouseEvent me) {
             if (me.getClickCount() == 2) { // to detect doble click events
               JTable target = (JTable) me.getSource();
