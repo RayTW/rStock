@@ -1,5 +1,7 @@
 package io.github.raytw.rstock;
 
+import dorkbox.notify.Notify;
+import dorkbox.notify.Pos;
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridBagLayout;
@@ -212,9 +214,12 @@ public class StockApplication extends JFrame {
 
               @Override
               public void onFailure(Call call, IOException exception) {
-                // TODO show error dialog.
-                // https://github.com/dorkbox/Notify
-                System.out.println("exception=" + exception);
+                Notify.create()
+                    .position(Pos.TOP_RIGHT)
+                    .title("Error")
+                    .text("Refresh failure that all page ,Exceptoin : " + exception.getMessage())
+                    .darkStyle()
+                    .showError();
               }
 
               @Override
@@ -263,9 +268,16 @@ public class StockApplication extends JFrame {
 
               @Override
               public void onFailure(Call call, IOException exception) {
-                // TODO show error dialog.
-                // https://github.com/dorkbox/Notify
-                System.out.println("exception=" + exception);
+                Notify.create()
+                    .position(Pos.TOP_RIGHT)
+                    .title("Error")
+                    .text(
+                        "Refresh failure for page "
+                            + page
+                            + " ,Exceptoin : "
+                            + exception.getMessage())
+                    .darkStyle()
+                    .showError();
               }
 
               @Override

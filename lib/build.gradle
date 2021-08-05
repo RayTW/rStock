@@ -26,7 +26,8 @@ dependencies {
     // https://mvnrepository.com/artifact/io.github.raytw/ra
     implementation group: 'io.github.raytw', name: 'ra', version: '0.4.0'
     
-
+    // https://mvnrepository.com/artifact/com.dorkbox/Notify
+    implementation group: 'com.dorkbox', name: 'Notify', version: '3.7'
 }
 
 tasks.named('test') {
