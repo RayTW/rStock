@@ -1,70 +1,117 @@
 package io.github.raytw.rstock;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.HashMap;
-import javax.swing.JComponent;
-import javax.swing.JOptionPane;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.Frame;
+import java.awt.GridLayout;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.Optional;
+import java.util.function.Function;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.JTextPane;
+import javax.swing.border.EmptyBorder;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyleContext;
 
 /**
- * Simple editor.
+ * Simple java script editor.
  *
  * @author Ray Li
  */
-public class JavaScriptEditor {
-  private StrategyJavaScript<Ticker> strategy;
-  private HashMap<String, String> cache;
-
-  public JavaScriptEditor() {
-    strategy = new StrategyJavaScript<>();
-    cache = new HashMap<>();
-  }
+public class JavaScriptEditor extends JDialog implements ActionListener {
+  private static final long serialVersionUID = 4382200682104638340L;
+  private JTextArea scriptEditor;
+  private JTextPane console;
+  private Optional<Function<String, Boolean>> listener;
 
   /**
-   * verify.
+   * Initialize.
    *
-   * @param ticker ticker detail
+   * @param frame frame
+   * @param type type
    */
-  public void verify(Ticker ticker) {
-    // TODO show a component of the text area that strategy of choice stock for the
-    // user to write java script.
-    System.out.println("ticker=" + ticker);
+  public JavaScriptEditor(Frame frame, ModalityType type) {
+    super(frame, type);
+    Container pane = getContentPane();
 
-    String js = cache.get(ticker.getSymbol());
+    pane.setLayout(new BorderLayout());
 
-    if (js == null) {
-      try {
-        js = new String(Files.readAllBytes(Paths.get("test.js")));
-      } catch (IOException e) {
-        e.printStackTrace();
-        return;
-      }
-    }
+    EmptyBorder eb = new EmptyBorder(new Insets(10, 10, 10, 10));
+    console = new JTextPane();
+    console.setBorder(eb);
+    console.setMargin(new Insets(5, 5, 5, 5));
 
-    JTextArea ta = new JTextArea(20, 40);
-    JScrollPane sp = new JScrollPane(ta);
+    scriptEditor = new JTextArea();
+    JScrollPane sp = new JScrollPane(scriptEditor);
+    JPanel centerPanel = new JPanel(new BorderLayout());
 
-    ta.setText(js);
+    centerPanel.add(sp, BorderLayout.CENTER);
+    centerPanel.add(new JScrollPane(console), BorderLayout.SOUTH);
+    pane.add(centerPanel, BorderLayout.CENTER);
 
-    JComponent[] inputs = new JComponent[] {sp};
-    int result =
-        JOptionPane.showConfirmDialog(null, inputs, "Editor", JOptionPane.OK_CANCEL_OPTION);
-    if (result == JOptionPane.OK_OPTION) {
-      String javaScript = ta.getText().toString();
+    JButton close = new JButton("Close");
+    JButton apply = new JButton("Apply And Close");
+    JPanel buttonPanel = new JPanel(new GridLayout(1, 2));
 
-      try {
-        strategy.enableNotification(javaScript, ticker);
-        cache.put(ticker.getSymbol(), javaScript);
-      } catch (NotificationException e) {
-        e.printStackTrace();
-        ta.setText(e.getMessage());
-        JOptionPane.showConfirmDialog(null, inputs, "Error", JOptionPane.CLOSED_OPTION);
-      }
-    } else {
-      System.out.println("User canceled / closed the dialog, result = " + result);
-    }
+    buttonPanel.add(close);
+    buttonPanel.add(apply);
+    pane.add(buttonPanel, BorderLayout.SOUTH);
+
+    setLocation(frame.getLocation());
+    setSize(frame.getWidth(), frame.getHeight());
+
+    close.addActionListener(event -> this.dispose());
+
+    apply.addActionListener(
+        event ->
+            listener.ifPresent(
+                f -> {
+                  if (f.apply(scriptEditor.getText())) {
+                    this.dispose();
+                  }
+                }));
+
+    // TODO evaluate whether to add UndoManager features.
+    // https://docs.oracle.com/javase/8/docs/api/javax/swing/undo/UndoManager.html
+  }
+
+  public void setApplyAndCloseListener(Function<String, Boolean> listener) {
+    this.listener = Optional.ofNullable(listener);
+  }
+
+  @Override
+  public void actionPerformed(ActionEvent arg0) {
+    dispose();
+  }
+
+  public void setJavaScript(String javaScript) {
+    scriptEditor.setText(javaScript);
+  }
+
+  public void setConsole(String message) {
+    appendToPane(console, message, Color.RED);
+    console.setText(message);
+  }
+
+  private void appendToPane(JTextPane pane, String message, Color color) {
+    StyleContext sc = StyleContext.getDefaultStyleContext();
+    AttributeSet aset = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, color);
+
+    aset = sc.addAttribute(aset, StyleConstants.FontFamily, "Lucida Console");
+    aset = sc.addAttribute(aset, StyleConstants.Alignment, StyleConstants.ALIGN_JUSTIFIED);
+
+    int len = pane.getDocument().getLength();
+    pane.setCaretPosition(len);
+    pane.setCharacterAttributes(aset, false);
+    pane.replaceSelection(message);
   }
 }

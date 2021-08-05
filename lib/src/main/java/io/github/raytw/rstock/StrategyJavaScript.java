@@ -23,18 +23,19 @@ public class StrategyJavaScript<V> {
    * @throws NotificationException NotificationException
    */
   public boolean enableNotification(String javaScript, V ticker) throws NotificationException {
+    if (javaScript.indexOf("enableNotification(") == -1) {
+      throw new NotificationException("No such function enableNotification");
+    }
     try {
       engine.eval(javaScript);
+
       Invocable invocable = (Invocable) engine;
       Object result = invocable.invokeFunction("enableNotification", ticker);
       System.out.println(result);
 
       return Boolean.class.cast(result);
-    } catch (ScriptException e) {
-      throw new NotificationException("" + e.getMessage());
-    } catch (NoSuchMethodException e) {
-      e.printStackTrace();
-      throw new NotificationException("" + e.getMessage());
+    } catch (ScriptException | NoSuchMethodException e) {
+      throw new NotificationException(e.getMessage());
     }
   }
 }

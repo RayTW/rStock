@@ -47,7 +47,7 @@ public class StockApplication extends JFrame {
   private JTabbedPane tabbedPand;
   private Map<String, StockTable> stockPages;
   private Map<String, Ticker> allTicker;
-  private JavaScriptEditor jsEditor;
+  private StrategyNotification jsEditor;
   private Timer timer;
   private String apiParameters;
   private int tickerBatch = 3;
@@ -61,7 +61,7 @@ public class StockApplication extends JFrame {
   public StockApplication() throws IOException {
     stockPages = new ConcurrentHashMap<>();
     allTicker = new ConcurrentHashMap<>();
-    jsEditor = new JavaScriptEditor();
+    jsEditor = new StrategyNotification();
     timer = new Timer();
     setupLayout();
   }
@@ -132,7 +132,8 @@ public class StockApplication extends JFrame {
               // Let each page default display that ticker symbol.
               list.setShowTickerSymbol(stocks);
               list.setDoubleClickTickerSymbolListener(
-                  (tickerSymbol) -> jsEditor.verify(allTicker.get(tickerSymbol)));
+                  (tickerSymbol) ->
+                      jsEditor.verify(StockApplication.this, allTicker.get(tickerSymbol)));
 
               String page = element.getKey();
 
@@ -217,7 +218,7 @@ public class StockApplication extends JFrame {
                 Notify.create()
                     .position(Pos.TOP_RIGHT)
                     .title("Error")
-                    .text("Refresh failure that all page ,Exceptoin : " + exception.getMessage())
+                    .text("Refresh failure that all page \nExceptoin : " + exception.getMessage())
                     .darkStyle()
                     .showError();
               }
@@ -274,7 +275,7 @@ public class StockApplication extends JFrame {
                     .text(
                         "Refresh failure for page "
                             + page
-                            + " ,Exceptoin : "
+                            + " \nExceptoin : "
                             + exception.getMessage())
                     .darkStyle()
                     .showError();
