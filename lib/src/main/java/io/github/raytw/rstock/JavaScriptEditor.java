@@ -9,13 +9,16 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Optional;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 import javax.swing.JButton;
 import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
+import javax.swing.ListSelectionModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.SimpleAttributeSet;
@@ -31,7 +34,8 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
   private static final long serialVersionUID = 4382200682104638340L;
   private JTextArea scriptEditor;
   private JTextPane console;
-  private Optional<BiFunction<String, String, Boolean>> listener;
+  private JList<String> notifyPeriodList;
+  private Optional<Function<JavaScriptEditor, Boolean>> listener;
   private String tickerSymbol;
 
   /**
@@ -59,10 +63,22 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
     centerPanel.add(new JScrollPane(console), BorderLayout.SOUTH);
     pane.add(centerPanel, BorderLayout.CENTER);
 
+    notifyPeriodList = new JList<>(new String[] {"NONE", "1 HOUR 1 TIMES", "1 DAY 1 TIMES"});
+    notifyPeriodList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+    notifyPeriodList.setLayoutOrientation(JList.VERTICAL);
+    notifyPeriodList.setVisibleRowCount(-1);
+    JScrollPane listScroller =
+        new JScrollPane(
+            notifyPeriodList,
+            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
     JButton close = new JButton("Close");
     JButton apply = new JButton("Apply And Close");
-    JPanel buttonPanel = new JPanel(new GridLayout(1, 2));
+    JPanel buttonPanel = new JPanel(new GridLayout(2, 2));
 
+    buttonPanel.add(new JLabel("通知頻率", JLabel.CENTER));
+    buttonPanel.add(listScroller);
     buttonPanel.add(close);
     buttonPanel.add(apply);
     pane.add(buttonPanel, BorderLayout.SOUTH);
@@ -76,7 +92,7 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
         event ->
             listener.ifPresent(
                 f -> {
-                  if (f.apply(tickerSymbol, scriptEditor.getText())) {
+                  if (f.apply(JavaScriptEditor.this)) {
                     this.dispose();
                   }
                 }));
@@ -85,13 +101,32 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
     // https://docs.oracle.com/javase/8/docs/api/javax/swing/undo/UndoManager.html
   }
 
-  public void setApplyAndCloseListener(BiFunction<String, String, Boolean> listener) {
+  public String getTickerSymbol() {
+    return tickerSymbol;
+  }
+
+  public String getJavaScript() {
+    return scriptEditor.getText();
+  }
+
+  public String getNotifyPeriodSelectedValue() {
+    return notifyPeriodList.getSelectedValue();
+  }
+
+  public void setApplyAndCloseListener(Function<JavaScriptEditor, Boolean> listener) {
     this.listener = Optional.ofNullable(listener);
   }
 
   @Override
   public void actionPerformed(ActionEvent arg0) {
     dispose();
+  }
+
+  /** Reset layout states. */
+  public void reset() {
+    setConsole("");
+    notifyPeriodList.setSelectedIndex(0);
+    notifyPeriodList.ensureIndexIsVisible(0);
   }
 
   public void setVerifyTicker(String tickerSymbol, String javaScript) {

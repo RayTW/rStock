@@ -20,8 +20,8 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.swing.JDialog;
@@ -347,16 +347,21 @@ public class StockApplication extends JFrame {
         }
       }
 
+      jsEditor.reset();
       jsEditor.setVerifyTicker(tickerSymbol, javaScript);
-      jsEditor.setConsole("");
       jsEditor.setVisible(true);
     }
   }
 
-  private class ApplyAndCloseImpl implements BiFunction<String, String, Boolean> {
+  private class ApplyAndCloseImpl implements Function<JavaScriptEditor, Boolean> {
 
     @Override
-    public Boolean apply(String tickerSymbol, String javaScript) {
+    public Boolean apply(JavaScriptEditor eidtor) {
+      String tickerSymbol = eidtor.getTickerSymbol();
+      String javaScript = eidtor.getJavaScript();
+      String notifyPeriod = eidtor.getNotifyPeriodSelectedValue();
+
+      System.out.println("notifyPeriod=" + notifyPeriod);
       try {
         Ticker ticker = allTicker.get(tickerSymbol);
         strategy.enableNotification(javaScript, ticker);
