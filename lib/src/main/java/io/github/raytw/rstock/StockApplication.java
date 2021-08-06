@@ -52,7 +52,7 @@ public class StockApplication extends JFrame {
   private StrategyJavaScript<Ticker> strategy;
   private Map<String, StockTable> stockPages;
   private Map<String, Ticker> allTicker;
-  private Map<String, String> jsDb;
+  private Database database;
   private Timer timer;
   private String apiParameters;
   private int tickerBatch = 3;
@@ -66,7 +66,7 @@ public class StockApplication extends JFrame {
   public StockApplication() throws IOException {
     stockPages = new ConcurrentHashMap<>();
     allTicker = new ConcurrentHashMap<>();
-    jsDb = new ConcurrentHashMap<>();
+    database = new Database();
     strategy = new StrategyJavaScript<>();
     timer = new Timer();
     setupLayout();
@@ -149,6 +149,8 @@ public class StockApplication extends JFrame {
               tabbedPand.add(page, list.getScrollTable());
               tabbedPand.setSelectedIndex(0);
             });
+
+    database.connect();
   }
 
   private List<Ticker> loadStocks(JSONArray stockList) {
@@ -331,25 +333,27 @@ public class StockApplication extends JFrame {
     public void accept(String tickerSymbol) {
       // show a component of the text area that strategy of choice stock for the
       // user to write java script.
-      String javaScript = jsDb.get(tickerSymbol);
+      database.getJavascriptAndPeriod(
+          tickerSymbol,
+          (javaScript, notifyPeroid) -> {
+            if (javaScript == null) {
+              try {
+                javaScript = database.readAllStringFromResource("strategy.js", "utf-8");
+              } catch (IOException e) {
+                Notify.create()
+                    .position(Pos.TOP_RIGHT)
+                    .title("File not found")
+                    .text(e.getMessage())
+                    .darkStyle()
+                    .showError();
+                return;
+              }
+            }
 
-      if (javaScript == null) {
-        try {
-          javaScript = new String(Files.readAllBytes(Paths.get("strategy.js")));
-        } catch (IOException e) {
-          Notify.create()
-              .position(Pos.TOP_RIGHT)
-              .title("File not found")
-              .text(e.getMessage())
-              .darkStyle()
-              .showError();
-          return;
-        }
-      }
-
-      jsEditor.reset();
-      jsEditor.setVerifyTicker(tickerSymbol, javaScript);
-      jsEditor.setVisible(true);
+            jsEditor.reset();
+            jsEditor.setVerifyTicker(tickerSymbol, javaScript, notifyPeroid);
+            jsEditor.setVisible(true);
+          });
     }
   }
 
@@ -361,12 +365,10 @@ public class StockApplication extends JFrame {
       String javaScript = eidtor.getJavaScript();
       String notifyPeriod = eidtor.getNotifyPeriodSelectedValue();
 
-      System.out.println("notifyPeriod=" + notifyPeriod);
       try {
         Ticker ticker = allTicker.get(tickerSymbol);
         strategy.enableNotification(javaScript, ticker);
-
-        jsDb.put(tickerSymbol, javaScript);
+        database.upsertJavascriptAndPeriod(tickerSymbol, javaScript, notifyPeriod);
 
         return Boolean.TRUE;
       } catch (NotificationException e) {
@@ -385,29 +387,31 @@ public class StockApplication extends JFrame {
       if (ticker == null) {
         return;
       }
-      String javaScript = jsDb.get(tickerSymbol);
+      database.getJavascriptAndPeriod(
+          tickerSymbol,
+          (javaScript, notifyPeroid) -> {
+            if (javaScript == null) {
+              return;
+            }
 
-      if (javaScript == null) {
-        return;
-      }
-
-      try {
-        if (strategy.enableNotification(javaScript, ticker)) {
-          Notify.create()
-              .position(Pos.TOP_RIGHT)
-              .title("Notification")
-              .text("Take order,id" + ticker.getId() + ",price:" + ticker.getPrice())
-              .darkStyle()
-              .showConfirm();
-        }
-      } catch (NotificationException e) {
-        Notify.create()
-            .position(Pos.TOP_RIGHT)
-            .title("Java script compile failure")
-            .text(e.getMessage())
-            .darkStyle()
-            .showError();
-      }
+            try {
+              if (strategy.enableNotification(javaScript, ticker)) {
+                Notify.create()
+                    .position(Pos.TOP_RIGHT)
+                    .title("Notification")
+                    .text("Take order,id" + ticker.getId() + ",price:" + ticker.getPrice())
+                    .darkStyle()
+                    .showConfirm();
+              }
+            } catch (NotificationException e) {
+              Notify.create()
+                  .position(Pos.TOP_RIGHT)
+                  .title("Java script compile failure")
+                  .text(e.getMessage())
+                  .darkStyle()
+                  .showError();
+            }
+          });
     }
   }
 

@@ -19,6 +19,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextPane;
 import javax.swing.ListSelectionModel;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.AttributeSet;
 import javax.swing.text.SimpleAttributeSet;
@@ -70,14 +72,14 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
     JScrollPane listScroller =
         new JScrollPane(
             notifyPeriodList,
-            JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-            JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+            ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+            ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
     JButton close = new JButton("Close");
     JButton apply = new JButton("Apply And Close");
     JPanel buttonPanel = new JPanel(new GridLayout(2, 2));
 
-    buttonPanel.add(new JLabel("通知頻率", JLabel.CENTER));
+    buttonPanel.add(new JLabel("通知頻率", SwingConstants.CENTER));
     buttonPanel.add(listScroller);
     buttonPanel.add(close);
     buttonPanel.add(apply);
@@ -129,9 +131,26 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
     notifyPeriodList.ensureIndexIsVisible(0);
   }
 
-  public void setVerifyTicker(String tickerSymbol, String javaScript) {
+  /**
+   * Sets layout states.
+   *
+   * @param tickerSymbol tickerSymbol
+   * @param javaScript javaScript
+   * @param notifyPeroid notifyPeroid
+   */
+  public void setVerifyTicker(String tickerSymbol, String javaScript, String notifyPeroid) {
     this.tickerSymbol = tickerSymbol;
     scriptEditor.setText(javaScript);
+
+    if (notifyPeroid == null) {
+      return;
+    }
+    for (int i = 0; i < notifyPeriodList.getSelectedValuesList().size(); i++) {
+      if (notifyPeriodList.getSelectedValuesList().get(i).equals(notifyPeroid)) {
+        notifyPeriodList.setSelectedIndex(i);
+        break;
+      }
+    }
   }
 
   public void setConsole(String message) {
