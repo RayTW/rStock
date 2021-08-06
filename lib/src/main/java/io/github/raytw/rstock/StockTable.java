@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
@@ -20,6 +21,9 @@ import javax.swing.table.TableRowSorter;
 public class StockTable {
   private DataTable allTicker;
   private StockTableArguments arguments;
+  private Thread timer;
+  private boolean isRunning;
+  private Consumer<String> periodVerfyTickerListener;
 
   /** Initialize. */
   public StockTable(StockTableArguments arguments) {
@@ -32,6 +36,9 @@ public class StockTable {
     TableRowSorter<TableModel> sorter = new TableRowSorter<>(allTicker.getTable().getModel());
     allTicker.setRowSorter(sorter);
     allTicker.setShowHorizontalLines(true);
+    isRunning = true;
+    timer = new Thread(this::intervalVerify);
+    timer.start();
   }
 
   public DataTable getTable() {
@@ -60,6 +67,10 @@ public class StockTable {
 
   public void setColumnDefaultRenderer(int column, DefaultTableCellRenderer renderer) {
     allTicker.getColumnModel().getColumn(column).setCellRenderer(renderer);
+  }
+
+  public void setPeriodVerfyTickerListener(Consumer<String> listener) {
+    periodVerfyTickerListener = listener;
   }
 
   /**
@@ -125,5 +136,20 @@ public class StockTable {
                 });
           }
         });
+  }
+
+  private void intervalVerify() {
+    while (isRunning) {
+      if (periodVerfyTickerListener != null) {
+        for (int i = 0; i < allTicker.getRowCount(); i++) {
+          periodVerfyTickerListener.accept(allTicker.getValutAt(i, 0));
+        }
+      }
+      try {
+        TimeUnit.SECONDS.sleep(5);
+      } catch (InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
   }
 }

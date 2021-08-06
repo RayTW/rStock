@@ -9,7 +9,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
@@ -31,7 +31,8 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
   private static final long serialVersionUID = 4382200682104638340L;
   private JTextArea scriptEditor;
   private JTextPane console;
-  private Optional<Function<String, Boolean>> listener;
+  private Optional<BiFunction<String, String, Boolean>> listener;
+  private String tickerSymbol;
 
   /**
    * Initialize.
@@ -75,7 +76,7 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
         event ->
             listener.ifPresent(
                 f -> {
-                  if (f.apply(scriptEditor.getText())) {
+                  if (f.apply(tickerSymbol, scriptEditor.getText())) {
                     this.dispose();
                   }
                 }));
@@ -84,7 +85,7 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
     // https://docs.oracle.com/javase/8/docs/api/javax/swing/undo/UndoManager.html
   }
 
-  public void setApplyAndCloseListener(Function<String, Boolean> listener) {
+  public void setApplyAndCloseListener(BiFunction<String, String, Boolean> listener) {
     this.listener = Optional.ofNullable(listener);
   }
 
@@ -93,7 +94,8 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
     dispose();
   }
 
-  public void setJavaScript(String javaScript) {
+  public void setVerifyTicker(String tickerSymbol, String javaScript) {
+    this.tickerSymbol = tickerSymbol;
     scriptEditor.setText(javaScript);
   }
 

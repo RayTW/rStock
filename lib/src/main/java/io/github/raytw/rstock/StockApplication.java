@@ -3,6 +3,7 @@ package io.github.raytw.rstock;
 import dorkbox.notify.Notify;
 import dorkbox.notify.Pos;
 import java.awt.BorderLayout;
+import java.awt.Dialog.ModalityType;
 import java.awt.Dimension;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
@@ -19,6 +20,8 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.swing.JDialog;
@@ -45,9 +48,11 @@ public class StockApplication extends JFrame {
   private static final long serialVersionUID = 4239430715284526041L;
   private JTextField searchComic;
   private JTabbedPane tabbedPand;
+  private JavaScriptEditor jsEditor;
+  private StrategyJavaScript<Ticker> strategy;
   private Map<String, StockTable> stockPages;
   private Map<String, Ticker> allTicker;
-  private StrategyNotification jsEditor;
+  private Map<String, String> jsDb;
   private Timer timer;
   private String apiParameters;
   private int tickerBatch = 3;
@@ -61,7 +66,8 @@ public class StockApplication extends JFrame {
   public StockApplication() throws IOException {
     stockPages = new ConcurrentHashMap<>();
     allTicker = new ConcurrentHashMap<>();
-    jsEditor = new StrategyNotification();
+    jsDb = new ConcurrentHashMap<>();
+    strategy = new StrategyJavaScript<>();
     timer = new Timer();
     setupLayout();
   }
@@ -92,6 +98,9 @@ public class StockApplication extends JFrame {
 
     setLocationRelativeTo(null);
     setVisible(true);
+
+    jsEditor = new JavaScriptEditor(this, ModalityType.APPLICATION_MODAL);
+    jsEditor.setApplyAndCloseListener(new ApplyAndCloseImpl());
   }
 
   private void loadSettings(String stockPath) throws JSONException, IOException {
@@ -131,9 +140,8 @@ public class StockApplication extends JFrame {
               list.setColumnDefaultRenderer(2, new StockTableCellRenderer());
               // Let each page default display that ticker symbol.
               list.setShowTickerSymbol(stocks);
-              list.setDoubleClickTickerSymbolListener(
-                  (tickerSymbol) ->
-                      jsEditor.verify(StockApplication.this, allTicker.get(tickerSymbol)));
+              list.setDoubleClickTickerSymbolListener(new ClickTickerSymbolImpl());
+              list.setPeriodVerfyTickerListener(new PeriodVerfyTickerImpl());
 
               String page = element.getKey();
 
@@ -315,6 +323,87 @@ public class StockApplication extends JFrame {
           }
         },
         pageReloadSeconds * 1000);
+  }
+
+  private class ClickTickerSymbolImpl implements Consumer<String> {
+
+    @Override
+    public void accept(String tickerSymbol) {
+      // show a component of the text area that strategy of choice stock for the
+      // user to write java script.
+      String javaScript = jsDb.get(tickerSymbol);
+
+      if (javaScript == null) {
+        try {
+          javaScript = new String(Files.readAllBytes(Paths.get("strategy.js")));
+        } catch (IOException e) {
+          Notify.create()
+              .position(Pos.TOP_RIGHT)
+              .title("File not found")
+              .text(e.getMessage())
+              .darkStyle()
+              .showError();
+          return;
+        }
+      }
+
+      jsEditor.setVerifyTicker(tickerSymbol, javaScript);
+      jsEditor.setConsole("");
+      jsEditor.setVisible(true);
+    }
+  }
+
+  private class ApplyAndCloseImpl implements BiFunction<String, String, Boolean> {
+
+    @Override
+    public Boolean apply(String tickerSymbol, String javaScript) {
+      try {
+        Ticker ticker = allTicker.get(tickerSymbol);
+        strategy.enableNotification(javaScript, ticker);
+
+        jsDb.put(tickerSymbol, javaScript);
+
+        return Boolean.TRUE;
+      } catch (NotificationException e) {
+        jsEditor.setConsole(e.getMessage());
+      }
+      return Boolean.FALSE;
+    }
+  }
+
+  /** Verify each ticker is needed to pop-up notify when match strategy. */
+  private class PeriodVerfyTickerImpl implements Consumer<String> {
+    @Override
+    public void accept(String tickerSymbol) {
+      Ticker ticker = allTicker.get(tickerSymbol);
+
+      if (ticker == null) {
+        return;
+      }
+      String javaScript = jsDb.get(tickerSymbol);
+
+      if (javaScript == null) {
+        return;
+      }
+
+      try {
+        if (strategy.enableNotification(javaScript, ticker)) {
+          Notify.create()
+              .position(Pos.TOP_RIGHT)
+              .title("Notification")
+              .text("Take order,id" + ticker.getId() + ",price:" + ticker.getPrice())
+              .darkStyle()
+              .showConfirm();
+        }
+      } catch (NotificationException e) {
+        Notify.create()
+            .position(Pos.TOP_RIGHT)
+            .title("Java script compile failure")
+            .text(e.getMessage())
+            .darkStyle()
+            .showError();
+      }
+    }
   }
 
   /**

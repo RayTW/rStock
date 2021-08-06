@@ -31,7 +31,6 @@ public class StrategyJavaScript<V> {
 
       Invocable invocable = (Invocable) engine;
       Object result = invocable.invokeFunction("enableNotification", ticker);
-      System.out.println(result);
 
       return Boolean.class.cast(result);
     } catch (ScriptException | NoSuchMethodException e) {
