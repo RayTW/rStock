@@ -36,7 +36,6 @@ public class Stock {
     for (int i = 1; i <= 10; i++) {
       apiPositionReserve.add(i);
     }
-    System.out.println("apiUrl=" + apiUrl);
   }
 
   public static Stock get() {
