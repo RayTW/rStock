@@ -108,14 +108,14 @@ public class StockApplication extends JFrame {
     StockTableArguments argments = new StockTableArguments();
 
     apiParameters = "price,change,high,low,changepct";
-    argments.setColumnsName(Arrays.asList("id", "個股", "今價", "漲跌", "最高", "最低"));
+    argments.setColumnsName(Arrays.asList("symbol", "個股", "今價", "漲跌", "最高", "最低"));
     argments.setApiResultProcess(
         (element) -> {
           String changepctPercent = element.getChange() + " / " + element.getChangepct() + "%";
 
           return Arrays.asList(
               element.getSymbol(),
-              "", // TODO Stock name
+              element.getId(), // TODO Convert to stock name
               element.getPrice(),
               changepctPercent,
               element.getHigh(),
@@ -139,9 +139,10 @@ public class StockApplication extends JFrame {
               List<Ticker> stocks = element.getValue();
               StockTable list = new StockTable(argments);
 
+              list.setHideColumn(0);
               list.setColumnRenderer(new StockTableCellRenderer(3));
               // Let each page default display that ticker symbol.
-              list.setShowTickerSymbol(stocks);
+              list.setShowTickerSymbol(stocks, (ticker, objs) -> objs[1] = ticker.getId());
               list.setDoubleClickTickerSymbolListener(new ClickTickerSymbolImpl());
               list.setPeriodVerfyTickerListener(new PeriodVerfyTickerImpl());
 
@@ -166,12 +167,16 @@ public class StockApplication extends JFrame {
                   .map(JSONObject.class::cast)
                   .map(
                       stock -> {
-                        String id = stock.getString("id");
+                        String id = stock.getString("id").split("[.]")[0];
                         String region = stock.getString("region");
                         String symbol = id;
 
                         if ("TW".equals(region)) {
-                          symbol = "TPE:" + symbol.split("[.]")[0];
+                          if ("^TWII".equals(symbol)) {
+                            symbol = "TPE:TAIEX";
+                          } else {
+                            symbol = "TPE:" + symbol.split("[.]")[0];
+                          }
                         }
 
                         return new Ticker(key, id, symbol);

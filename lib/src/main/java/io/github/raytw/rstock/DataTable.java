@@ -125,6 +125,32 @@ public class DataTable {
   }
 
   /**
+   * Sets this column's preferred width to preferredWidth. If preferredWidth exceeds the minimum or
+   * maximum width, it is adjusted to the appropriate limiting value.
+   *
+   * @param column column
+   * @param width width
+   */
+  public void setColumnPreferredWidth(int column, int width) {
+    table.getColumnModel().getColumn(column).setPreferredWidth(width);
+  }
+
+  /**
+   * Hide specify the column.
+   *
+   * @param column column
+   */
+  public void setHideColumn(int column) {
+    table.getColumnModel().getColumn(column).setMinWidth(0);
+    table.getColumnModel().getColumn(column).setMaxWidth(0);
+    table.getColumnModel().getColumn(column).setWidth(0);
+  }
+
+  public void setHeaderReorderingAllowed(boolean reorderingAllowed) {
+    table.getTableHeader().setReorderingAllowed(reorderingAllowed);
+  }
+
+  /**
    * Set row that the height.
    *
    * @param h row height

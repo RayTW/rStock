@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
@@ -35,6 +36,7 @@ public class StockTable {
     TableRowSorter<TableModel> sorter = new TableRowSorter<>(allTicker.getTable().getModel());
     allTicker.setRowSorter(sorter);
     allTicker.setShowHorizontalLines(true);
+    allTicker.setHeaderReorderingAllowed(false);
     isRunning = true;
     timer = new Thread(this::intervalVerify);
     timer.start();
@@ -68,6 +70,26 @@ public class StockTable {
     allTicker.getColumnModel().getColumn(renderer.getSpecifyColumn()).setCellRenderer(renderer);
   }
 
+  /**
+   * Sets this column's preferred width to preferredWidth. If preferredWidth exceeds the minimum or
+   * maximum width, it is adjusted to the appropriate limiting value.
+   *
+   * @param column column
+   * @param width width
+   */
+  public void setColumnPreferredWidth(int column, int width) {
+    allTicker.setColumnPreferredWidth(column, width);
+  }
+
+  /**
+   * Hide specify the column.
+   *
+   * @param column column
+   */
+  public void setHideColumn(int column) {
+    allTicker.setHideColumn(column);
+  }
+
   public void setPeriodVerfyTickerListener(Consumer<String> listener) {
     periodVerfyTickerListener = listener;
   }
@@ -77,7 +99,8 @@ public class StockTable {
    *
    * @param stocks stocks
    */
-  public void setShowTickerSymbol(List<Ticker> stocks) {
+  public void setShowTickerSymbol(
+      List<Ticker> stocks, BiConsumer<Ticker, Object[]> columnDefaultValue) {
     SwingUtilities.invokeLater(
         () -> {
           allTicker.removeAll();
@@ -88,6 +111,7 @@ public class StockTable {
                     Object[] objs = new Object[arguments.getColumnsName().size()];
                     Arrays.fill(objs, "");
                     objs[0] = ticker.getSymbol();
+                    columnDefaultValue.accept(ticker, objs);
                     return objs;
                   })
               .forEach(allTicker::addRow);
