@@ -25,17 +25,18 @@ import okhttp3.Response;
 public class Stock {
   private static Stock instance = new Stock();
   private OkHttpClient client;
-  // TODO please use your API id that google Apps script.
-  private String apiUrl = "https://script.google.com/macros/s/yourGoogleAppsScriptsApiId/exec";
+  private String apiUrl = null;
   private LinkedTransferQueue<Integer> apiPositionReserve;
 
   private Stock() {
+    apiUrl = Configuration.getProperty("api.url");
     client = new OkHttpClient.Builder().readTimeout(3, TimeUnit.MINUTES).build();
     apiPositionReserve = new LinkedTransferQueue<>();
 
     for (int i = 1; i <= 10; i++) {
       apiPositionReserve.add(i);
     }
+    System.out.println("apiUrl=" + apiUrl);
   }
 
   public static Stock get() {

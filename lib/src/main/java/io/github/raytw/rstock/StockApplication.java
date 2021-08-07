@@ -8,6 +8,7 @@ import java.awt.Dimension;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Toolkit;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -429,11 +430,15 @@ public class StockApplication extends JFrame {
    * main.
    *
    * @param args args
+   * @throws IOException IOException
+   * @throws FileNotFoundException FileNotFoundException
    */
-  public static void main(String[] args) {
+  public static void main(String[] args) throws FileNotFoundException, IOException {
     JDialog loading = showLoadingDialog();
 
     loading.setVisible(true);
+
+    Configuration.loadProperties("rstock.properties");
     try {
       StockApplication application = new StockApplication();
       application.loadSettings("stocks.txt");

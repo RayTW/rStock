@@ -43,8 +43,8 @@ public class Database {
     notifySettings =
         new OriginalConnection(
             new H2Parameters.Builder()
-                .localFile(new File("./data/sample").toString())
-                .setName("myDb")
+                .localFile(new File("./rstockApp").toString())
+                .setName("rstock")
                 .setProperties(
                     () -> {
                       Properties properties = new Properties();
