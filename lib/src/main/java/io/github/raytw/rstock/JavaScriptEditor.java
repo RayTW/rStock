@@ -79,7 +79,7 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
     JButton apply = new JButton("Apply And Close");
     JPanel buttonPanel = new JPanel(new GridLayout(2, 2));
 
-    buttonPanel.add(new JLabel("通知頻率", SwingConstants.CENTER));
+    buttonPanel.add(new JLabel("Notification", SwingConstants.CENTER));
     buttonPanel.add(listScroller);
     buttonPanel.add(close);
     buttonPanel.add(apply);
@@ -111,8 +111,8 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
     return scriptEditor.getText();
   }
 
-  public String getNotifyPeriodSelectedValue() {
-    return notifyPeriodList.getSelectedValue();
+  public int getNotifyPeriodSelectedIndex() {
+    return notifyPeriodList.getSelectedIndex();
   }
 
   public void setApplyAndCloseListener(Function<JavaScriptEditor, Boolean> listener) {
@@ -136,21 +136,12 @@ public class JavaScriptEditor extends JDialog implements ActionListener {
    *
    * @param tickerSymbol tickerSymbol
    * @param javaScript javaScript
-   * @param notifyPeroid notifyPeroid
+   * @param notifyPeroid notify index
    */
-  public void setVerifyTicker(String tickerSymbol, String javaScript, String notifyPeroid) {
+  public void setVerifyTicker(String tickerSymbol, String javaScript, int notifyPeroid) {
     this.tickerSymbol = tickerSymbol;
     scriptEditor.setText(javaScript);
-
-    if (notifyPeroid == null) {
-      return;
-    }
-    for (int i = 0; i < notifyPeriodList.getSelectedValuesList().size(); i++) {
-      if (notifyPeriodList.getSelectedValuesList().get(i).equals(notifyPeroid)) {
-        notifyPeriodList.setSelectedIndex(i);
-        break;
-      }
-    }
+    notifyPeriodList.setSelectedIndex(notifyPeroid);
   }
 
   public void setConsole(String message) {

@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 import java.util.Properties;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -23,12 +24,19 @@ import ra.db.record.RecordCursor;
  */
 public class Database {
   private OriginalConnection notifySettings;
+  private String queryTickerSql =
+      "SELECT ticker_symbol FROM notify_settings WHERE ticker_symbol='%s';";
   private String queryTickerSymbolSql =
-      "SELECT ticker_symbol,settings FROM notify_settings WHERE ticker_symbol='%s';";
+      "SELECT ticker_symbol,javascript,notify_period FROM notify_settings"
+          + " WHERE ticker_symbol='%s';";
+  private String queryAllEnableNotifySql =
+      "SELECT ticker_symbol,javascript,notify_period FROM notify_settings"
+          + " WHERE notify_period!=0";
   private String updateTickerSymbolSql =
-      "UPDATE notify_settings SET settings = '%s' FORMAT JSON WHERE ticker_symbol='%s';";
+      "UPDATE notify_settings SET javascript = '%s'"
+          + " FORMAT JSON, notify_period = %d WHERE ticker_symbol='%s';";
   private String insertTickerSymbolSql =
-      "INSERT INTO notify_settings VALUES('%s', '%s' FORMAT JSON);";
+      "INSERT INTO notify_settings VALUES('%s', '%s' FORMAT JSON, %d);";
 
   /** Connect to database. */
   public void connect() {
@@ -81,9 +89,9 @@ public class Database {
    * Returns java script and period.
    *
    * @param tickerSymbol tickerSymbol
-   * @param listener java script,period
+   * @param listener java script,notify period
    */
-  public void getJavascriptAndPeriod(String tickerSymbol, BiConsumer<String, String> listener) {
+  public void getJavascriptAndPeriod(String tickerSymbol, BiConsumer<String, Integer> listener) {
     String sql = String.format(queryTickerSymbolSql, tickerSymbol);
     RecordCursor record = notifySettings.createStatementExecutor().executeQuery(sql);
 
@@ -94,9 +102,26 @@ public class Database {
     }
     record.forEach(
         row -> {
-          JSONObject json = new JSONObject(new String(row.getBlob("settings")));
-          listener.accept(json.optString("javascript"), json.optString("period"));
+          JSONObject json = new JSONObject(new String(row.getBlob("javascript")));
+          int notifyPeriod = row.getInt("notify_period");
+
+          listener.accept(json.optString("javascript"), notifyPeriod);
         });
+  }
+
+  /**
+   * Returns all ticker symbols that enable notify.
+   *
+   * @return ticker symbol
+   */
+  public List<String> getAllEnableNotifyTickerSymbols() {
+    StatementExecutor executor = notifySettings.createStatementExecutor();
+
+    return executor
+        .executeQuery(queryAllEnableNotifySql)
+        .stream()
+        .map(row -> row.getString("ticker_symbol"))
+        .collect(Collectors.toList());
   }
 
   /**
@@ -106,23 +131,20 @@ public class Database {
    * @param javascript java script
    * @param notifyPeriod notify period
    */
-  public void upsertJavascriptAndPeriod(
-      String tickerSymbol, String javascript, String notifyPeriod) {
+  public void upsertJavascriptAndPeriod(String tickerSymbol, String javascript, int notifyPeriod) {
     JSONObject settings = new JSONObject();
 
     settings.put("javascript", javascript);
-    settings.put("period", notifyPeriod);
     String json = settings.toString().replace("'", "''");
-    String updateSql = String.format(updateTickerSymbolSql, json, tickerSymbol);
-
     StatementExecutor executor = notifySettings.createStatementExecutor();
 
-    if (executor.execute(updateSql) > 0) {
-      return;
+    if (executor.executeQuery(String.format(queryTickerSql, tickerSymbol)).getRecordCount() > 0) {
+      String updateSql = String.format(updateTickerSymbolSql, json, notifyPeriod, tickerSymbol);
+      executor.execute(updateSql);
+    } else {
+      String insertSql = String.format(insertTickerSymbolSql, tickerSymbol, json, notifyPeriod);
+      executor.execute(insertSql);
     }
-    String insertSql = String.format(insertTickerSymbolSql, tickerSymbol, json);
-
-    executor.execute(insertSql);
   }
 
   /**

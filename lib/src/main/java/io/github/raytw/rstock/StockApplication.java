@@ -107,13 +107,14 @@ public class StockApplication extends JFrame {
     StockTableArguments argments = new StockTableArguments();
 
     apiParameters = "price,change,high,low,changepct";
-    argments.setColumnsName(Arrays.asList("個股", "今價", "漲跌", "最高", "最低"));
+    argments.setColumnsName(Arrays.asList("id", "個股", "今價", "漲跌", "最高", "最低"));
     argments.setApiResultProcess(
         (element) -> {
           String changepctPercent = element.getChange() + " / " + element.getChangepct() + "%";
 
           return Arrays.asList(
               element.getSymbol(),
+              "", // TODO Stock name
               element.getPrice(),
               changepctPercent,
               element.getHigh(),
@@ -237,35 +238,26 @@ public class StockApplication extends JFrame {
               public void onResponse(Call call, Response response) throws IOException {
                 List<Ticker> tickersLatest = convertJsonToTicker(response.body().string());
 
-                // group by page.
-                tickersLatest
-                    .stream()
-                    .collect(Collectors.groupingBy(ticker -> ticker.getPage()))
-                    .entrySet()
-                    .stream()
-                    .forEach(
-                        element -> {
-                          int page = element.getKey();
-                          StockTable stockList = stockPages.get(String.valueOf(page));
-
-                          stockList.reload(element.getValue());
-                        });
+                refrushAllPage(tickersLatest);
               }
             },
             this::triggerTimer); // complete load all ticker detail.
   }
 
   /**
-   * Refresh the page of current.
+   * Refresh stock that current page or enable notify.
    *
    * @param page page
    */
-  public void refreshStocksSinglePage(int page) {
+  public void refreshInterestedStocks(int page) {
     if (stockPages.size() == 0) {
       return;
     }
+    List<String> enableNotify = database.getAllEnableNotifyTickerSymbols();
     String key = String.valueOf(page);
     List<String> symbols = stockPages.get(key).getColumnValues(0);
+
+    symbols.addAll(enableNotify);
 
     if (symbols.size() == 0) {
       return;
@@ -294,11 +286,27 @@ public class StockApplication extends JFrame {
               @Override
               public void onResponse(Call call, Response response) throws IOException {
                 List<Ticker> tickersLatest = convertJsonToTicker(response.body().string());
-                StockTable stockList = stockPages.get(key);
-                stockList.reload(tickersLatest);
+
+                refrushAllPage(tickersLatest);
               }
             },
             this::triggerTimer);
+  }
+
+  private void refrushAllPage(List<Ticker> tickersLatest) {
+    // group by page.
+    tickersLatest
+        .stream()
+        .collect(Collectors.groupingBy(ticker -> ticker.getPage()))
+        .entrySet()
+        .stream()
+        .forEach(
+            element -> {
+              int page = element.getKey();
+              StockTable stockList = stockPages.get(String.valueOf(page));
+
+              stockList.reload(element.getValue());
+            });
   }
 
   private List<Ticker> convertJsonToTicker(String responseString) {
@@ -321,7 +329,7 @@ public class StockApplication extends JFrame {
             if (tabbedPand.getSelectedIndex() == -1) {
               return;
             }
-            refreshStocksSinglePage(tabbedPand.getSelectedIndex() + 1);
+            refreshInterestedStocks(tabbedPand.getSelectedIndex() + 1);
           }
         },
         pageReloadSeconds * 1000);
@@ -336,8 +344,10 @@ public class StockApplication extends JFrame {
       database.getJavascriptAndPeriod(
           tickerSymbol,
           (javaScript, notifyPeroid) -> {
+            // Use default settings when first click stock that no settings.
             if (javaScript == null) {
               try {
+                notifyPeroid = 0;
                 javaScript = database.readAllStringFromResource("strategy.js", "utf-8");
               } catch (IOException e) {
                 Notify.create()
@@ -363,7 +373,7 @@ public class StockApplication extends JFrame {
     public Boolean apply(JavaScriptEditor eidtor) {
       String tickerSymbol = eidtor.getTickerSymbol();
       String javaScript = eidtor.getJavaScript();
-      String notifyPeriod = eidtor.getNotifyPeriodSelectedValue();
+      int notifyPeriod = eidtor.getNotifyPeriodSelectedIndex();
 
       try {
         Ticker ticker = allTicker.get(tickerSymbol);
