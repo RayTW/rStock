@@ -9,7 +9,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
-import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
@@ -65,8 +64,8 @@ public class StockTable {
     return ret;
   }
 
-  public void setColumnDefaultRenderer(int column, DefaultTableCellRenderer renderer) {
-    allTicker.getColumnModel().getColumn(column).setCellRenderer(renderer);
+  public void setColumnRenderer(StockTableCellRenderer renderer) {
+    allTicker.getColumnModel().getColumn(renderer.getSpecifyColumn()).setCellRenderer(renderer);
   }
 
   public void setPeriodVerfyTickerListener(Consumer<String> listener) {

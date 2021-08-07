@@ -139,7 +139,7 @@ public class StockApplication extends JFrame {
               List<Ticker> stocks = element.getValue();
               StockTable list = new StockTable(argments);
 
-              list.setColumnDefaultRenderer(2, new StockTableCellRenderer());
+              list.setColumnRenderer(new StockTableCellRenderer(3));
               // Let each page default display that ticker symbol.
               list.setShowTickerSymbol(stocks);
               list.setDoubleClickTickerSymbolListener(new ClickTickerSymbolImpl());
