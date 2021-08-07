@@ -47,7 +47,7 @@ import org.json.JSONObject;
  */
 public class StockApplication extends JFrame {
   private static final long serialVersionUID = 4239430715284526041L;
-  private JTextField searchComic;
+  private JTextField searchStock;
   private JTabbedPane tabbedPand;
   private JavaScriptEditor jsEditor;
   private StrategyJavaScript<Ticker> strategy;
@@ -85,9 +85,9 @@ public class StockApplication extends JFrame {
     getContentPane().add(northPanel, BorderLayout.NORTH);
 
     JPanel findPanel = new JPanel(new GridLayout(1, 0));
-    searchComic = new JTextField();
+    searchStock = new JTextField();
     findPanel.add(new JLabel("股票代號"), BorderLayout.WEST);
-    findPanel.add(searchComic, BorderLayout.CENTER);
+    findPanel.add(searchStock, BorderLayout.CENTER);
     northPanel.add(findPanel, BorderLayout.CENTER);
 
     JPanel centerPanel = new JPanel(new GridLayout(0, 1));
@@ -197,7 +197,7 @@ public class StockApplication extends JFrame {
    * @return stock symbol
    */
   public String getStockSymbol() {
-    return searchComic.getText();
+    return searchStock.getText();
   }
 
   /**
