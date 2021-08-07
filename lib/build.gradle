@@ -24,7 +24,7 @@ dependencies {
     implementation group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.9.1'
     
     // https://mvnrepository.com/artifact/io.github.raytw/ra
-    implementation group: 'io.github.raytw', name: 'ra', version: '0.4.0'
+    implementation group: 'io.github.raytw', name: 'ra', version: '0.4.1'
     
     // https://mvnrepository.com/artifact/com.dorkbox/Notify
     implementation group: 'com.dorkbox', name: 'Notify', version: '3.7'
