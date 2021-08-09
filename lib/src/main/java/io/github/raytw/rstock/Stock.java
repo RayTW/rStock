@@ -69,8 +69,8 @@ public class Stock {
       List<String> tickerList, List<String> attributeList, Callback callback) throws IOException {
 
     getTickerDetail(
-        tickerList.stream().reduce("", (a, b) -> a.isEmpty() ? b : a.concat(b).concat(",")),
-        attributeList.stream().reduce("", (a, b) -> a.isEmpty() ? b : a.concat(b).concat(",")),
+        tickerList.stream().collect(Collectors.joining(",")),
+        attributeList.stream().collect(Collectors.joining(",")),
         callback);
   }
 
@@ -160,12 +160,9 @@ public class Stock {
         .parallelStream()
         .forEach(
             tickers -> {
-              String tickerList =
-                  tickers.stream().reduce("", (a, b) -> a.isEmpty() ? b : a.concat(",").concat(b));
-
               try {
                 getTickerDetail(
-                    tickerList,
+                    tickers.stream().collect(Collectors.joining(",")),
                     attributeList,
                     new ApiCallBack(callback, () -> letchRef.ifPresent(ref -> ref.countDown())) {});
               } catch (IOException e) {
